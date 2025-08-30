@@ -43,9 +43,6 @@ USTRUCT()
 struct  FItemNumericData
 {
 	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere)
-	int32 Quantity;
     
 	UPROPERTY(EditAnywhere)
 	int32 MaxQuantity;
@@ -60,16 +57,16 @@ struct FItemAssetData
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere)
-	UTexture2D* Icon;
+	TSoftObjectPtr<UTexture2D> Icon;
 
 	UPROPERTY(EditAnywhere)
-	UStaticMesh* Mesh;
+	TSoftObjectPtr<UStaticMesh> Mesh;
 
 	UPROPERTY(EditAnywhere)
-	USkeletalMesh* SkeletalMesh;
+	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
 
 	UPROPERTY(EditAnywhere)
-	USoundCue* Sound;
+	TSoftObjectPtr<USoundCue> Sound;
 	
 	
 };
@@ -94,11 +91,7 @@ struct FItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumericData ItemNumericData;
 	
-
-
-
-	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
-    	FItemAssetData ItemAssetData;
+	FItemAssetData ItemAssetData;
 	
 };
