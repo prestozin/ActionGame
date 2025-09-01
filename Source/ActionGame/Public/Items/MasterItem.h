@@ -4,16 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Data/ItemDataStructs.h"
+#include "Interfaces/InteractionInterface.h"
 #include "MasterItem.generated.h"
 
 
+class UStaticMeshComponent;
+
 UCLASS()
-class ACTIONGAME_API AMasterItem : public AActor
+class ACTIONGAME_API AMasterItem : public AActor, public IInteractionInterface
 {
 	GENERATED_BODY()
 
 public:
+	
  AMasterItem();
 	
 	// ================================
@@ -21,15 +24,12 @@ public:
 	// ================================
 	
 	
-	
 	UPROPERTY (EditAnywhere, Category = "Item Data", meta = (UIMin = 1, UIMax = 100))
 	int32 Quantity;
     
 	UPROPERTY(EditAnywhere, Category = "Item Data")
-	FName ItemName;
-
-	;
-
+	FName Name;
+	
 
 	
 	// ================================
@@ -37,40 +37,24 @@ public:
 	// ================================
 
 
-
+virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
 	
 	
 	
 protected:
 
-	
-	
-
 	virtual void BeginPlay() override;
+	
 private:
 
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
-
-
-	UPROPERTY(EditAnywhere)
-	class USphereComponent* Sphere;
+	
 	
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* ItemMesh;
 
-
-	// ================================
-	// =        FUNCTIONS             =
-	// ================================
-
-	UFUNCTION()
-	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	void GetItem(AActor* ItemActor);
 	
-public:
 	
-	virtual void Tick(float DeltaTime) override;
 };

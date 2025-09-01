@@ -8,7 +8,6 @@
 #include "InventoryComponent.generated.h"
 
 
-
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ACTIONGAME_API UInventoryComponent : public UActorComponent
 {
@@ -37,7 +36,7 @@ public:
 
 
 	
-	void AddItem(FName ItemName);
+	void AddItem(FName RowName, int32 Quantity);
 
 	
 protected:
