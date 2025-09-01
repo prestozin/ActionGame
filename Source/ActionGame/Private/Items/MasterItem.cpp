@@ -7,8 +7,9 @@
 
 AMasterItem::AMasterItem()
 {
+	
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
-	ItemMesh->SetupAttachment(GetRootComponent());
+	RootComponent = ItemMesh;
 }
 
 
@@ -21,6 +22,8 @@ void AMasterItem::GetItemData_Implementation(FName& OutItemName, int32& OutQuant
 void AMasterItem::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Tags.Add(FName("Item"));
 	
 }
 

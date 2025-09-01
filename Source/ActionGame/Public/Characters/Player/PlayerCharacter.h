@@ -4,10 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "InputActionValue.h"
 #include "PlayerCharacter.generated.h"
 
 class UInventoryComponent;
 class USphereComponent;
+class UInputMappingContext;
+class UInputAction;
+
 UCLASS()
 class ACTIONGAME_API APlayerCharacter : public ACharacter
 {
@@ -30,18 +34,40 @@ public:
 	
 	
 protected:
+
+	// ================================
+	// =        PROPERTIES            =
+	// ================================
+	
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputMappingContext* MappingContext;
+
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputAction* MovementAction;
+
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputAction*  LookAction;
+
+	// ================================
+	// =        FUNCTIONS           =
+	// ================================
 	
 	virtual void BeginPlay() override;
 
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	void Interact();
+
 private:
+	
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
 	
 	UPROPERTY(EditAnywhere)
 	USphereComponent* InteractSphere;
-
-
+	
+	
 	// ================================
 	// =        FUNCTIONS            =
 	// ================================
