@@ -7,19 +7,33 @@
 #include "Components/SphereComponent.h"
 #include "Interfaces/InteractionInterface.h"
 
-//#include "Components/InputComponent.h"
-//#include "EnhancedInputSubsystemInterface.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	//create and set interaction sphere
 	InteractSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	InteractSphere->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnSphereOverlap);
+	InteractSphere->SetupAttachment(RootComponent);
+
+	//create inventory component
 	PlayerInventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
-	
+
+	//create and set spring arm
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->TargetArmLength = 300;
+	SpringArm->bUsePawnControlRotation = true;
+
+	//create camera
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(SpringArm);
 }
 
 
@@ -87,6 +101,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	{
 		PlayerInput->BindAction(MovementAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		PlayerInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
+		PlayerInput->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
 	}
 	
 }
@@ -110,6 +125,18 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 	AddControllerPitchInput(LookAxisVector.Y);
 	AddControllerYawInput(LookAxisVector.X);
+}
+
+void APlayerCharacter::Jump(const FInputActionValue& Value)
+{
+	if (Value.Get<bool>())
+	{
+		ACharacter::Jump();
+	}
+	else
+	{
+		ACharacter::StopJumping();
+	}
 }
 
 

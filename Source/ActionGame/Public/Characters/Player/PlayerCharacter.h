@@ -9,6 +9,8 @@
 
 class UInventoryComponent;
 class USphereComponent;
+class USpringArmComponent;
+class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 
@@ -48,6 +50,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputAction*  LookAction;
 
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputAction*  JumpAction;
+	
 	// ================================
 	// =        FUNCTIONS           =
 	// ================================
@@ -56,6 +61,7 @@ protected:
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void Jump(const FInputActionValue& Value);
 	void Interact();
 
 private:
@@ -66,7 +72,12 @@ private:
 	
 	UPROPERTY(EditAnywhere)
 	USphereComponent* InteractSphere;
-	
+
+	UPROPERTY(EditAnywhere)
+	USpringArmComponent* SpringArm;
+
+	UPROPERTY(EditAnywhere)
+	UCameraComponent* Camera;
 	
 	// ================================
 	// =        FUNCTIONS            =

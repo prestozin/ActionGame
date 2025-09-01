@@ -80,13 +80,13 @@ struct FItemData : public FTableRowBase
 	FName ID;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
-	FItemTextData ItemTextData;
-	
-	UPROPERTY(EditAnywhere, Category = "Item Data")
 	EItemType ItemType;
 
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	EItemRarity ItemRarity;
+	
+	UPROPERTY(EditAnywhere, Category = "Item Data")
+	FItemTextData ItemTextData;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemNumericData ItemNumericData;

@@ -7,9 +7,9 @@
 
 AMasterItem::AMasterItem()
 {
-	
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	RootComponent = ItemMesh;
+	Tags.Add(FName("Item"));
 }
 
 
@@ -23,7 +23,7 @@ void AMasterItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Tags.Add(FName("Item"));
+	
 	
 }
 
