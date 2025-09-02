@@ -19,7 +19,8 @@ APlayerCharacter::APlayerCharacter()
 
 	//create and set interaction sphere
 	InteractSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
-	InteractSphere->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnSphereOverlap);
+	InteractSphere->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnSphereBeginOverlap);
+	InteractSphere->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnSphereEndOverlap);
 	InteractSphere->SetupAttachment(RootComponent);
 
 	//create inventory component
@@ -35,7 +36,6 @@ APlayerCharacter::APlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 }
-
 
 void APlayerCharacter::BeginPlay()
 {
@@ -54,44 +54,13 @@ void APlayerCharacter::BeginPlay()
 	}
 }
 
-
-
-void APlayerCharacter::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                       UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-
-	// se other actor for valido, tiver a tag e tiver a interface, passe para proxima etapa
-	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass()))
-	{
-		FName ItemName;
-		int32 Quantity;
-
-		// pegue a interface do other actor, e chame a função preenchida, defina de quem é a função (other actor) e preencha os inputs
-		OtherActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass());
-		IInteractionInterface::Execute_GetItemData(OtherActor, ItemName, Quantity);
-
-		UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ItemName.ToString());
-
-		if (PlayerInventory)
-		{
-			PlayerInventory->AddItem(ItemName, Quantity);
-
-			OtherActor->Destroy();
-		}
-
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ItemName.ToString());
-		}
-	}
-}
-
-
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
+
+#pragma region Movement
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -101,7 +70,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	{
 		PlayerInput->BindAction(MovementAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		PlayerInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-		PlayerInput->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
+		PlayerInput->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::Jump);
+		PlayerInput->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
 	}
 	
 }
@@ -119,14 +89,12 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		AddMovementInput(RightDirection, MovementVector.X);
 	
      }
-
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 	AddControllerPitchInput(LookAxisVector.Y);
 	AddControllerYawInput(LookAxisVector.X);
 }
-
 void APlayerCharacter::Jump(const FInputActionValue& Value)
 {
 	if (Value.Get<bool>())
@@ -139,5 +107,57 @@ void APlayerCharacter::Jump(const FInputActionValue& Value)
 	}
 }
 
+#pragma endregion
 
+#pragma region Interact
 
+void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                                       UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass()))
+	{
+		NearActor = OtherActor;
+		UE_LOG(LogTemp, Warning, TEXT("Item próximo: %s"), *OtherActor->GetName());
+	}
+	
+}
+
+void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor == NearActor)
+	{
+		NearActor = nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("ator fora de alcance"));
+	}
+}
+
+void APlayerCharacter::Interact()
+{
+				// se other actor for valido, tiver a tag e tiver a interface, passe para proxima etapa
+			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass()))
+			{
+				FName ItemName;
+				int32 Quantity;
+
+				// pegue a interface do other actor, e chame a função preenchida, defina de quem é a função (other actor) e preencha os inputs
+				NearActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass());
+				IInteractionInterface::Execute_GetItemData(NearActor, ItemName, Quantity);
+
+				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ItemName.ToString());
+
+				if (PlayerInventory)
+				{
+					PlayerInventory->AddItem(ItemName, Quantity);
+
+					NearActor->Destroy();
+				}
+
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ItemName.ToString());
+				}
+			}
+}
+
+#pragma endregion

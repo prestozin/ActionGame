@@ -52,6 +52,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputAction*  JumpAction;
+
+	UPROPERTY(EditAnywhere, Category = Input)
+	UInputAction*  InteractAction;
 	
 	// ================================
 	// =        FUNCTIONS           =
@@ -69,6 +72,9 @@ private:
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
+
+	UPROPERTY()
+	AActor* NearActor = nullptr;
 	
 	UPROPERTY(EditAnywhere)
 	USphereComponent* InteractSphere;
@@ -84,8 +90,12 @@ private:
 	// ================================
 
 	UFUNCTION()
-	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	
 };
