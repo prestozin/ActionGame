@@ -37,8 +37,7 @@ public:
 	// ================================
 
 
-virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
-	
+	virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
 	
 	
 protected:
@@ -55,6 +54,6 @@ private:
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* ItemMesh;
 
-	
+	void SetItemMesh() const;
 	
 };

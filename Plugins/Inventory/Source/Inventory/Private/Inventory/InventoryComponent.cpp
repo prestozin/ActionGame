@@ -13,6 +13,12 @@ UInventoryComponent::UInventoryComponent()
 }
 
 
+void UInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+}
+
 void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 {
 	
@@ -31,11 +37,20 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	}
 }
 
-void UInventoryComponent::BeginPlay()
+UStaticMesh* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 {
-	Super::BeginPlay();
+	if (!DataTable)  return nullptr;
+	
+	FItemData* Item = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
 
+	if (Item)
+	{
+		return Item->ItemAssetData.Mesh.LoadSynchronous();
+	}
+	return nullptr;
 }
+
+
 
 
 
