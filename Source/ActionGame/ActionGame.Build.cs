@@ -18,7 +18,8 @@ public class ActionGame : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"Inventory"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

@@ -2,8 +2,7 @@
 
 
 #include "Items/Inv_MasterItem.h"
-
-#include "Inventory/InventoryComponent.h"
+#include "Components/InventoryComponent.h"
 
 
 AInv_MasterItem::AInv_MasterItem()
