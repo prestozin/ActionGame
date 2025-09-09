@@ -27,4 +27,5 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	UStaticMesh* GetItemMesh(FName RowName);
+	
 };

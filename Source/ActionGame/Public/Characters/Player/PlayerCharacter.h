@@ -8,12 +8,16 @@
 #include "PlayerCharacter.generated.h"
 
 #pragma region classes
+
+
 class UInventoryComponent;
 class USphereComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UInventoryHUD;
+class UInv_InteractWidget;
 
 #pragma endregion
 
@@ -91,6 +95,12 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* Camera;
+
+	UPROPERTY()
+	UInventoryHUD* InventoryHUD;
+
+	UPROPERTY()
+	UInv_InteractWidget* InteractWidget;
 	
 	// ================================
 	// =        FUNCTIONS            =

@@ -3,6 +3,7 @@
 
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
+#include "Widgets/Item/Inv_InteractWidget.h"
 
 
 UInventoryComponent::UInventoryComponent()
@@ -15,11 +16,27 @@ UInventoryComponent::UInventoryComponent()
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	OwningController = GetWorld()->GetFirstPlayerController();
-	CreateHUDWidget();
 	
+	//create necessary data
+	CreateDefaults();
 
+}
+void UInventoryComponent::CreateDefaults()
+{
+		//Get owning controller
+    	OwningController = GetWorld()->GetFirstPlayerController();
+	
+    	//create interact widget
+    	InteractWidget = CreateWidget<UInv_InteractWidget>(GetWorld(), InteractWidgetClass);
+
+		//only add to viewport if widget is valid
+    	if (InteractWidget)
+    	{
+    		InteractWidget->AddToViewport();
+    	}
+
+		//create hud widget
+		CreateHUDWidget();
 }
 
 void UInventoryComponent::CreateHUDWidget()
@@ -30,12 +47,14 @@ void UInventoryComponent::CreateHUDWidget()
         
         	if (IsValid(InventoryHUD))
         	{
+        		InventoryHUD->GetInventoryComponent(this);
         		InventoryHUD->AddToViewport();
+        		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
         	}
 	}
-	
-	
-}
+	}
+
+
 
 void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 {
@@ -45,6 +64,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	{
 		
 		Inventory.Add(*Item);
+		InventoryHUD->CreateItemSlot();
 		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
 		
 	}
@@ -67,6 +87,8 @@ UStaticMesh* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 	}
 	return nullptr;
 }
+
+
 
 
 

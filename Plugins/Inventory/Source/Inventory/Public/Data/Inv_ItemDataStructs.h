@@ -43,7 +43,10 @@ USTRUCT()
 struct  FItemNumericData
 {
 	GENERATED_USTRUCT_BODY()
-    
+
+	UPROPERTY(EditAnywhere)
+	int32 Quantity;
+	
 	UPROPERTY(EditAnywhere)
 	int32 MaxQuantity;
 

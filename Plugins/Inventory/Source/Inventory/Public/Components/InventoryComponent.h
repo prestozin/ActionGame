@@ -10,6 +10,7 @@
 
 class UUserWidget;
 class UInventoryHUD;
+class UInv_InteractWidget;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InteractionInterface
@@ -43,7 +44,12 @@ public:
 	UPROPERTY()
 	TObjectPtr<UInventoryHUD> InventoryHUD;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TSubclassOf<UInv_InteractWidget> InteractWidgetClass;
 
+	UPROPERTY()
+	UInv_InteractWidget* InteractWidget;
+	
 	
 	// ================================
 	// =        FUNCTIONS            =
@@ -52,6 +58,7 @@ public:
 	void AddItem(FName RowName, int32 Quantity);
 	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
 
+
 private:
 	
 	// ================================
@@ -59,9 +66,8 @@ private:
 	// =================================
 
 	
-	//pega o player controller do owner do component e armazena em uma variavel
+	//get the owner player controller
 	TWeakObjectPtr<APlayerController> OwningController;
-
 
 	
 	// ================================
@@ -69,4 +75,7 @@ private:
 	// =================================
 
 	void CreateHUDWidget();
+
+	void CreateDefaults();
+	
 };

@@ -2,14 +2,20 @@
 
 
 #include "Characters/Player/PlayerCharacter.h"
+
 #include "Components/InventoryComponent.h"
 #include "Components/SphereComponent.h"
+
 #include "Interfaces/Inv_InteractionInterface.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+
+#include "Widgets/HUD/InventoryHUD.h"
+#include "Widgets/Item/Inv_InteractWidget.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -40,8 +46,11 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//widgets
+	InteractWidget = PlayerInventory->InteractWidget;
+	InventoryHUD = PlayerInventory->InventoryHUD;
 	
-		//Add input mapping context
+	//Add input mapping context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
 			//Get local player subsystem
@@ -117,6 +126,19 @@ void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedCompo
 	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
 	{
 		NearActor = OtherActor;
+
+		//se o inventory hud for valido, mostre a mensagem de interact no overlap
+		if (OtherActor && InteractWidget)
+		{
+			InteractWidget->ShowInteractMessage(InteractWidget->GetPickupMessage());
+			UE_LOG(LogTemp, Warning, TEXT("interact widget is valid"));
+		}
+
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("interact widget is not valid"));
+		}
+		
 		UE_LOG(LogTemp, Warning, TEXT("Item próximo: %s"), *OtherActor->GetName());
 	}
 	
@@ -128,6 +150,12 @@ void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedCompone
 	if (OtherActor == NearActor)
 	{
 		NearActor = nullptr;
+
+		//se o ator mais proximo nao for valido, esconde a mensagem de interact no endoverlap
+		if (!NearActor && InteractWidget)
+		{
+			InteractWidget->HideInteractMessage();
+		}
 		UE_LOG(LogTemp, Warning, TEXT("ator fora de alcance"));
 	}
 }
@@ -162,8 +190,14 @@ void APlayerCharacter::Interact()
 
 #pragma endregion
 
-void APlayerCharacter::OpenInventory()
+void APlayerCharacter::OpenInventory() 
 {
+	if (InventoryHUD)
+		
+	{
+		InventoryHUD->ToggleHUD();
+	}
+	
 	
 }
 
