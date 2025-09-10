@@ -46,17 +46,20 @@ void UInventoryHUD::ClearWrapBox() const
 	InventoryWrapBox->ClearChildren();
 }
 
-void UInventoryHUD::ToggleHUD()
+bool UInventoryHUD::ToggleHUD()
 {
-		if (GetVisibility() == ESlateVisibility::Visible)
-        	{
-        		SetVisibility(ESlateVisibility::Collapsed);
-        	}
-        	else
-        	{
-        		SetVisibility(ESlateVisibility::Visible);
-        	}
+	if (GetVisibility() == ESlateVisibility::Visible)
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+		return false;
+	}
+	else
+	{
+		SetVisibility(ESlateVisibility::Visible);
+		return true;
+	}
 }
+
 
 void UInventoryHUD::GetInventoryComponent(UInventoryComponent* PlayerInventory)
 {

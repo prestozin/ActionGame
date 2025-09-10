@@ -62,7 +62,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	FItemData* Item = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
 	if (Item)
 	{
-		
+		Item->ItemNumericData.Quantity = Quantity;
 		Inventory.Add(*Item);
 		InventoryHUD->CreateItemSlot();
 		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());

@@ -48,7 +48,12 @@ private:
 	
 	
 public:
-	
+	// ================================
+	// =       PROPERTIES          =
+	// ================================
+
+	UPROPERTY()
+	bool bInventoryOpen;
 
 	// ================================
 	// =       FUNCTIONS           =
@@ -56,7 +61,7 @@ public:
 
 	void ClearWrapBox() const;
 
-	void ToggleHUD();
+	bool ToggleHUD();
 
 	void GetInventoryComponent(UInventoryComponent* PlayerInventory);
 	

@@ -47,6 +47,9 @@ protected:
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
+
+	UPROPERTY()
+	APlayerController* PlayerController;
 	
 	UPROPERTY(EditAnywhere, Category = Input)
 	UInputMappingContext* MappingContext;

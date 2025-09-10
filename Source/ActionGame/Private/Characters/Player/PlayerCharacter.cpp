@@ -46,12 +46,16 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//get player controller
+	PlayerController = Cast<APlayerController>(GetController());
+
+	
 	//widgets
 	InteractWidget = PlayerInventory->InteractWidget;
 	InventoryHUD = PlayerInventory->InventoryHUD;
 	
 	//Add input mapping context
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	if (PlayerController)
 	{
 			//Get local player subsystem
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -192,11 +196,22 @@ void APlayerCharacter::Interact()
 
 void APlayerCharacter::OpenInventory() 
 {
+	
 	if (InventoryHUD)
-		
 	{
-		InventoryHUD->ToggleHUD();
+		bool bInventoryOpen = InventoryHUD->ToggleHUD();
+		if (bInventoryOpen)
+		{
+			PlayerController->bShowMouseCursor = true;
+			bUseControllerRotationYaw = false;
+		}
+		else
+		{
+			PlayerController->bShowMouseCursor = false;
+			bUseControllerRotationYaw = true;
+		}
 	}
+	
 	
 	
 }
