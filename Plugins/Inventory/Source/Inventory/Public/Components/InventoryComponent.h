@@ -56,6 +56,7 @@ public:
 	// =================================
 
 	void AddItem(FName RowName, int32 Quantity);
+	void StackItem(FItemData* Item);
 	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
 
 

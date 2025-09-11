@@ -63,7 +63,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	if (Item)
 	{
 		Item->ItemNumericData.Quantity = Quantity;
-		Inventory.Add(*Item);
+		StackItem(Item);
 		InventoryHUD->CreateItemSlot();
 		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
 		
@@ -72,6 +72,68 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Item %s não encontrado na DataTable!"), *RowName.ToString());
+	}
+}
+
+void UInventoryComponent::StackItem(FItemData* Item)
+{
+	//check if item is not null
+	if (Item)
+	{
+		//create a copy of item to add
+        	FItemData ItemToAdd = *Item;
+        	
+        	//check if the item is stackable
+        	if (ItemToAdd.ItemNumericData.IsStackable)
+        	{
+        		for (FItemData& ExistingItem : Inventory)
+        		{
+        			//check if already exist this kind of item in inventory
+        			if (ExistingItem.ID == ItemToAdd.ID)
+        			{
+        				//get the quantity left between max quantity - atual quantity
+        				const int32 SpaceLeft =  ExistingItem.ItemNumericData.MaxQuantity - ExistingItem.ItemNumericData.Quantity;
+        
+        				//check if the space left between the previous two values is bigger than 0
+        				if (SpaceLeft > 0)
+        				{
+        					//create a variable to keep the value to add to current quantity
+                         	const int32 ToAdd = FMath::Min(SpaceLeft, ItemToAdd.ItemNumericData.Quantity);
+        
+        					//sum these two values (Item quantity + quantity to add)
+        					ExistingItem.ItemNumericData.Quantity += ToAdd;
+
+        					//get the item to add quantity, and subtract the quantity that was added to inventory
+        					ItemToAdd.ItemNumericData.Quantity -= ToAdd;
+        					
+        					//if the quantity left to add is less or equal than 0, stop the loop
+        					if (ItemToAdd.ItemNumericData.Quantity <= 0) break;
+        				
+        				}
+        			}
+        		}
+        	}
+        
+        	//if the quantity left if bigger than 0, create a new slot with this itemz
+        	while (ItemToAdd.ItemNumericData.Quantity >0)
+        		{
+
+        		    //get the maximum quantity that a new stack can have
+        			int32 NewStack = FMath::Min(ItemToAdd.ItemNumericData.Quantity, ItemToAdd.ItemNumericData.MaxQuantity);
+
+        			//create a copy of item to add to not change the new stack value
+        			FItemData NewItemStack = ItemToAdd;
+
+        			//modify the value of this item to use the maximum quantity left to stack
+        			NewItemStack.ItemNumericData.Quantity = NewStack;
+
+        			//create a new slot with this maximum quantity left
+        			Inventory.Add(NewItemStack);
+
+        			//update the value of item to add to be the actual quantity - maximum quantity left in stack (new stack)
+        			ItemToAdd.ItemNumericData.Quantity -= NewStack;
+
+				}
 	}
 }
 
