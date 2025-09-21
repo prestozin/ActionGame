@@ -49,15 +49,22 @@ public:
 
 	UPROPERTY()
 	UInv_InteractWidget* InteractWidget;
-	
+
+	bool bShouldStackedItem;
+
 	
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
 
 	void AddItem(FName RowName, int32 Quantity);
+	
 	void StackItem(FItemData* Item);
+	
 	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void SwapItemSlot(int32 SourceIndex, int32 DestinationIndex);
 
 
 private:

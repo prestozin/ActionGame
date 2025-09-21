@@ -11,40 +11,53 @@
 void UInventoryHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	//start with inventory empty
+	InventorySlots.Empty();
 	
 }
 
 
 
-UInv_ItemSlot* UInventoryHUD::CreateItemSlot()
+void UInventoryHUD::CreateItemSlot(int32 ItemIndex)
 {
 	
-	if (!ItemSlotClass) return nullptr;
-
-	if (ItemSlotClass)
+	if (InventoryComponent->Inventory.IsValidIndex(ItemIndex))
+	{
+		const FItemData& Item = InventoryComponent->Inventory[ItemIndex];
+		UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();;
+		int32 Quantity = Item.ItemNumericData.Quantity;;
+		
+				       
+		NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
+		if (InventorySlots.Num() <= ItemIndex)
 		{
-			ClearWrapBox();
-			for (const FItemData& Inventory : InventoryComponent->Inventory)
-				{
-						UTexture2D* Icon;
-						int32 Quantity;
-				
-            			Icon = Inventory.ItemAssetData.Icon.LoadSynchronous();
-            			Quantity = Inventory.ItemNumericData.Quantity;
-            			
-            			ItemSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
-            			ItemSlot->SetSlotInfo(Icon, Quantity);
-						InventoryWrapBox->AddChildToWrapBox(ItemSlot);
-				}
+			InventorySlots.SetNum(ItemIndex + 1);
 		}
 		
-	return ItemSlot;
+		InventorySlots[ItemIndex] = NewSlot;
+				
+		NewSlot->SetSlotInfo(Icon, Quantity, ItemIndex);
+		NewSlot->GetInventory(InventoryComponent);
+		InventoryWrapBox->AddChildToWrapBox(NewSlot);
+	}
 }
 
-void UInventoryHUD::ClearWrapBox() const
+void UInventoryHUD::UpdateHud(int32 ItemIndex)
 {
-	InventoryWrapBox->ClearChildren();
+	
+		if (!InventoryComponent->Inventory.IsValidIndex(ItemIndex)) return;
+		if (!InventorySlots.IsValidIndex(ItemIndex)) return;
+		
+		const FItemData& ItemToUpdate = InventoryComponent->Inventory[ItemIndex];
+			
+		UTexture2D* Icon = ItemToUpdate.ItemAssetData.Icon.LoadSynchronous();
+		int32 Quantity = ItemToUpdate.ItemNumericData.Quantity;
+	
+		InventorySlots[ItemIndex]->SetSlotInfo(Icon, Quantity, ItemIndex);
+		
 }
+
 
 bool UInventoryHUD::ToggleHUD()
 {

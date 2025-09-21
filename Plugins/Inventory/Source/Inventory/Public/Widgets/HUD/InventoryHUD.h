@@ -32,13 +32,14 @@ private:
 	TSubclassOf<UInv_ItemSlot> ItemSlotClass;
 	
 	UPROPERTY()
-	UInv_ItemSlot* ItemSlot;
+	UInv_ItemSlot* NewSlot;
 
 	UPROPERTY()
 	UInventoryComponent* InventoryComponent;
 
 	UPROPERTY(meta = (BindWidget))
 	UWrapBox* InventoryWrapBox;
+
 	
 	// ================================
 	// =       FUNCTIONS           =
@@ -55,18 +56,22 @@ public:
 	UPROPERTY()
 	bool bInventoryOpen;
 
+	UPROPERTY()
+	TArray<UInv_ItemSlot*> InventorySlots;
+
 	// ================================
 	// =       FUNCTIONS           =
 	// ================================
-
-	void ClearWrapBox() const;
+	
 
 	bool ToggleHUD();
 
 	void GetInventoryComponent(UInventoryComponent* PlayerInventory);
 	
 	UFUNCTION(BlueprintCallable, Category="Inventory")
-	UInv_ItemSlot* CreateItemSlot();
+	void CreateItemSlot(int32 ItemIndex);
+
+	void UpdateHud(int32 ItemIndex);
 	
 protected:
 	
