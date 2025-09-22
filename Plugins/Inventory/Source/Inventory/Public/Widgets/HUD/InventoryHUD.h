@@ -11,6 +11,7 @@ class UWrapBox;
 class UInventoryComponent;
 class UInv_InteractWidget;
 class UInv_ItemSlot;
+class UInv_OnDragSlot;
 
 /**
  * 
@@ -26,7 +27,7 @@ private:
 	// ================================
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
-	TSubclassOf<UInv_InteractWidget> HUDWidgetClass;
+	TSubclassOf<UInv_InteractWidget> InteractWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UInv_ItemSlot> ItemSlotClass;
@@ -39,6 +40,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UWrapBox* InventoryWrapBox;
+
+	UPROPERTY(EditDefaultsOnly, Category="Inventory")
+	TSubclassOf<UInv_OnDragSlot> DragSlotClass;
 
 	
 	// ================================

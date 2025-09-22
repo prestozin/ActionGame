@@ -18,14 +18,15 @@ void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoi
 	UDragDropOperation*& OutOperation)
 {
 	UInv_DragAndDrop* DragDrop = NewObject<UInv_DragAndDrop>();
-	UInv_OnDragSlot* OnDragVisual = CreateWidget<UInv_OnDragSlot>(GetWorld(), UInv_OnDragSlot::StaticClass());
-	DragDrop->DefaultDragVisual = OnDragVisual;
-	OnDragVisual->AddToViewport(0);
-	OnDragVisual->ItemIcon->SetBrushFromTexture(SlotIcon);
 	
-	DragDrop->DraggedItemIndex = SlotIndex;
-	DragDrop->DefaultDragVisual = OnDragVisual;
-	OutOperation = DragDrop;
+	if (OnDragVisual)
+	{
+		DragDrop->DefaultDragVisual = OnDragVisual;
+		OnDragVisual->SlotIcon = SlotIcon;
+		DragDrop->DraggedItemIndex = SlotIndex;
+		DragDrop->DefaultDragVisual = OnDragVisual;
+		OutOperation = DragDrop;
+	}
 }
 
 bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,

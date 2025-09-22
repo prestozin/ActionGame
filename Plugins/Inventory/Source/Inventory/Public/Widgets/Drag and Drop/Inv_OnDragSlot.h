@@ -24,10 +24,14 @@ public:
 		
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
-
+	
+	UPROPERTY()
+	UTexture2D* SlotIcon;
+	
 	// ================================
 	// =         FUNCTIONS            =
 	// =================================
+
 
 protected:
 

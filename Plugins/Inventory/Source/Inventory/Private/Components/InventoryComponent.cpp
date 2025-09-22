@@ -21,6 +21,7 @@ void UInventoryComponent::BeginPlay()
 	CreateDefaults();
 
 }
+
 void UInventoryComponent::CreateDefaults()
 {
 		//Get owning controller
@@ -151,7 +152,7 @@ void UInventoryComponent::StackItem(FItemData* Item)
                         			//update the value of item to add to be the actual quantity - maximum quantity left in stack (new stack)
                         			ItemToAdd.ItemNumericData.Quantity -= NewStack;
                 				}
-}       	
+}
 
 void UInventoryComponent::SwapItemSlot(int32 SourceIndex, int32 DestinationIndex)
 {
@@ -210,6 +211,13 @@ void UInventoryComponent::SwapItemSlot(int32 SourceIndex, int32 DestinationIndex
 	
 				
 }
+
+void UInventoryComponent::RemoveItem(int32 ItemIndex)
+{
+	Inventory.RemoveAt(ItemIndex);
+}
+
+
    
 UStaticMesh* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 {

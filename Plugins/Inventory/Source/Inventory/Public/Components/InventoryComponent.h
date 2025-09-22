@@ -33,7 +33,7 @@ public:
 	// ================================
 
 	UPROPERTY(EditAnywhere, Category = "Item Data")
-	UDataTable* DataTable;
+	UDataTable* DataTable = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
@@ -48,9 +48,9 @@ public:
 	TSubclassOf<UInv_InteractWidget> InteractWidgetClass;
 
 	UPROPERTY()
-	UInv_InteractWidget* InteractWidget;
+	UInv_InteractWidget* InteractWidget = nullptr;
 
-	bool bShouldStackedItem;
+	bool bShouldStackedItem = false;
 
 	
 	// ================================
@@ -60,13 +60,13 @@ public:
 	void AddItem(FName RowName, int32 Quantity);
 	
 	void StackItem(FItemData* Item);
-	
-	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
 
+	void RemoveItem(int32 ItemIndex);
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SwapItemSlot(int32 SourceIndex, int32 DestinationIndex);
 
-
+	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
 private:
 	
 	// ================================

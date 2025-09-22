@@ -11,6 +11,7 @@
 class UInventoryComponent;
 class UTextBlock;
 class UImage;
+class UInv_OnDragSlot;
 
 
 /**
@@ -60,6 +61,9 @@ public:
 	
 	UPROPERTY(VisibleAnywhere)
 	int32 DraggedSlotIndex;
+
+	UPROPERTY()
+	UInv_OnDragSlot* OnDragVisual;
 	
 	// ================================
 	// =        FUNCTIONS            =

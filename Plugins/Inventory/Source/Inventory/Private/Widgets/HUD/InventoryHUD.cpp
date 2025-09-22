@@ -5,6 +5,7 @@
 #include "Widgets/Item/Inv_ItemSlot.h"
 #include "Components/InventoryComponent.h"
 #include "Components/WrapBox.h"
+#include "Widgets/Drag and Drop/Inv_OnDragSlot.h"
 
 
 
@@ -13,7 +14,7 @@ void UInventoryHUD::NativeConstruct()
 	Super::NativeConstruct();
 
 	//start with inventory empty
-	InventorySlots.Empty();
+	InventorySlots.Empty();	
 	
 }
 
@@ -30,16 +31,22 @@ void UInventoryHUD::CreateItemSlot(int32 ItemIndex)
 		
 				       
 		NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
-		if (InventorySlots.Num() <= ItemIndex)
+		UInv_OnDragSlot* OnDragWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
+		if (NewSlot)
 		{
-			InventorySlots.SetNum(ItemIndex + 1);
+			NewSlot->OnDragVisual = OnDragWidget;
+            		
+            		if (InventorySlots.Num() <= ItemIndex)
+            		{
+            			InventorySlots.SetNum(ItemIndex + 1);
+            		}
+            		
+            		InventorySlots[ItemIndex] = NewSlot;
+            				
+            		NewSlot->SetSlotInfo(Icon, Quantity, ItemIndex);
+            		NewSlot->GetInventory(InventoryComponent);
+            		InventoryWrapBox->AddChildToWrapBox(NewSlot);
 		}
-		
-		InventorySlots[ItemIndex] = NewSlot;
-				
-		NewSlot->SetSlotInfo(Icon, Quantity, ItemIndex);
-		NewSlot->GetInventory(InventoryComponent);
-		InventoryWrapBox->AddChildToWrapBox(NewSlot);
 	}
 }
 
