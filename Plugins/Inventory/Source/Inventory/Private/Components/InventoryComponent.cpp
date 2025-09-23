@@ -3,6 +3,7 @@
 
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
+#include "Items/Inv_MasterItem.h"
 #include "Widgets/Item/Inv_InteractWidget.h"
 
 
@@ -56,7 +57,6 @@ void UInventoryComponent::CreateHUDWidget()
 }
 
 
-
 void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 {
 
@@ -64,33 +64,36 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	
 	FItemData* Item = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
 
-	//create a copy of the entry item and set the quantity
-	FItemData ItemToAdd = *Item;
-	ItemToAdd.ItemNumericData.Quantity = Quantity;
-
-	StackItem(&ItemToAdd);
-
-	//create a new index to each new item in the inventory
-	for (int32 ItemIndex = 0; ItemIndex < Inventory.Num(); ItemIndex++)
+	if (Item)
 	{
-		//create a copy of the current item of the slot index in inventory
-		const FItemData& CurrentItem = Inventory[ItemIndex];
-
-		//check if the current item in the slot and the new item are qual, if not, check if the quantity of current item is bigger than 0
-		if (CurrentItem.ID == ItemToAdd.ID && CurrentItem.ItemNumericData.Quantity >0)
-		{
-			if (!InventoryHUD->InventorySlots.IsValidIndex(ItemIndex))
-			{
-				InventoryHUD->CreateItemSlot(ItemIndex);
-			}
-			InventoryHUD->UpdateHud(ItemIndex);
-		}
+		FItemData ItemToAdd = *Item;
+        	ItemToAdd.ItemNumericData.Quantity = Quantity;
+        
+        	StackItem(&ItemToAdd);
+        
+        	//create a new index to each new item in the inventory
+        	for (int32 ItemIndex = 0; ItemIndex < Inventory.Num(); ItemIndex++)
+        	{
+        		//create a copy of the current item of the slot index in inventory
+        		const FItemData& CurrentItem = Inventory[ItemIndex];
+        
+        		//check if the current item in the slot and the new item are qual, if not, check if the quantity of current item is bigger than 0
+        		if (CurrentItem.ID == ItemToAdd.ID && CurrentItem.ItemNumericData.Quantity >0)
+        		{
+        			if (!InventoryHUD->InventorySlots.IsValidIndex(ItemIndex))
+        			{
+        				InventoryHUD->CreateItemSlot(ItemIndex);
+        			}
+        			InventoryHUD->UpdateHud(ItemIndex);
+        		}
+        	}
+        	
+        		
+        		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
+        		
+        	}
 	}
 	
-		
-		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
-		
-	}
 
 void UInventoryComponent::StackItem(FItemData* Item)
 {
@@ -145,10 +148,39 @@ void UInventoryComponent::StackItem(FItemData* Item)
                 
                         			//modify the value of this item to use the maximum quantity left to stack
                         			NewItemStack.ItemNumericData.Quantity = NewStack;
-                
-                        			//create a new slot with this maximum quantity left
-                        			Inventory.Add(NewItemStack);
-                
+
+                        			bool bPlacedInEmptySlot = false;
+
+                        			for (int32 Index = 0; Index < Inventory.Num(); Index++)
+                        			{
+                        				if (Inventory[Index].ItemNumericData.Quantity == 0)
+                        				{
+                        					Inventory[Index] = NewItemStack;
+                        					bPlacedInEmptySlot = true;
+
+                        					if (InventoryHUD)
+                        					{
+                        						if (!InventoryHUD->InventorySlots.IsValidIndex(Index))
+                        						{
+                        							InventoryHUD->CreateItemSlot(Index);
+                        						}
+                        						InventoryHUD->UpdateHud(Index);
+                        					}
+                        					break;
+                        				}
+                        			}
+
+                        			if (!bPlacedInEmptySlot)
+                        			{
+                        				//create a new slot with this maximum quantity left
+                        				Inventory.Add(NewItemStack);
+                        				if (InventoryHUD)
+                        				{
+                        					InventoryHUD->CreateItemSlot(Inventory.Num() - 1); 
+                        					InventoryHUD->UpdateHud(Inventory.Num() - 1); 
+                        				}
+                        			}
+                        		
                         			//update the value of item to add to be the actual quantity - maximum quantity left in stack (new stack)
                         			ItemToAdd.ItemNumericData.Quantity -= NewStack;
                 				}
@@ -212,14 +244,59 @@ void UInventoryComponent::SwapItemSlot(int32 SourceIndex, int32 DestinationIndex
 				
 }
 
-void UInventoryComponent::RemoveItem(int32 ItemIndex)
+
+
+void UInventoryComponent::RemoveItem(int32 Index)
 {
-	Inventory.RemoveAt(ItemIndex);
+	if (!Inventory.IsValidIndex(Index)) return; 
+	FItemData& ItemToRemove = Inventory[Index];
+	SpawnItem(ItemToRemove);
+	ItemToRemove = FItemData();
+	
+	if (InventoryHUD)
+	{
+		InventoryHUD->UpdateHud(Index);
+	}
+}
+
+void UInventoryComponent::SpawnItem(const FItemData& Item)
+{	
+	if ( UWorld* World = GetWorld())
+	{
+		
+		FVector SpawnLocation = GetOwner()->GetActorLocation();
+		FRotator SpawnRotation = FRotator::ZeroRotator;
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SpawnParameters.Owner = GetOwner();
+
+		if (Item.ItemClass)
+		{
+			AInv_MasterItem* SpawnedItem = World->SpawnActor<AInv_MasterItem>(Item.ItemClass, SpawnLocation, SpawnRotation, SpawnParameters);
+			if (SpawnedItem)
+			{
+				SpawnedItem->ID = Item.ID;
+				SpawnedItem->Quantity = Item.ItemNumericData.Quantity;
+				UStaticMesh* StaticMesh = Item.ItemAssetData.StaticMesh.LoadSynchronous();
+				USkeletalMesh* SkeletalMesh = Item.ItemAssetData.SkeletalMesh.LoadSynchronous();
+				
+				if (StaticMesh)
+				{
+					SpawnedItem->ItemStaticMesh->SetStaticMesh(Item.ItemAssetData.StaticMesh.LoadSynchronous());
+				}
+
+				if (SkeletalMesh)
+				{
+					SpawnedItem->ItemSkeletalMesh->SetSkeletalMesh(Item.ItemAssetData.SkeletalMesh.LoadSynchronous());
+				}
+				
+			}
+		}
+	}
 }
 
 
-   
-UStaticMesh* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
+UObject* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 {
 	if (!DataTable)  return nullptr;
 	
@@ -227,7 +304,14 @@ UStaticMesh* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 
 	if (Item)
 	{
-		return Item->ItemAssetData.Mesh.LoadSynchronous();
+		if (Item->ItemAssetData.StaticMesh.IsValid())
+		{
+			return Item->ItemAssetData.StaticMesh.LoadSynchronous();
+		}
+		if (Item->ItemAssetData.SkeletalMesh.IsValid())
+		{
+			return Item->ItemAssetData.SkeletalMesh.LoadSynchronous();
+		}
 	}
 	return nullptr;
 }

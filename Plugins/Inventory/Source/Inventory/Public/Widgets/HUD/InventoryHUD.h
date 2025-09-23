@@ -37,10 +37,7 @@ private:
 
 	UPROPERTY()
 	UInventoryComponent* InventoryComponent;
-
-	UPROPERTY(meta = (BindWidget))
-	UWrapBox* InventoryWrapBox;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category="Inventory")
 	TSubclassOf<UInv_OnDragSlot> DragSlotClass;
 
@@ -53,12 +50,16 @@ private:
 	
 	
 public:
+	
 	// ================================
 	// =       PROPERTIES          =
 	// ================================
 
 	UPROPERTY()
 	bool bInventoryOpen;
+
+	UPROPERTY(meta = (BindWidget))
+	UWrapBox* InventoryWrapBox;
 
 	UPROPERTY()
 	TArray<UInv_ItemSlot*> InventorySlots;
@@ -76,7 +77,7 @@ public:
 	void CreateItemSlot(int32 ItemIndex);
 
 	void UpdateHud(int32 ItemIndex);
-	
+
 protected:
 	
 	virtual void NativeConstruct() override;

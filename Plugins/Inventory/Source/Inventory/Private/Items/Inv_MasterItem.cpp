@@ -10,12 +10,23 @@ AInv_MasterItem::AInv_MasterItem()
 	//add tag
 	Tags.Add(FName("Item"));
 
-	//create and configure mesh
-	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
-	ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	ItemMesh->SetCollisionProfileName(TEXT("Item"));
-	ItemMesh->SetGenerateOverlapEvents(true);
-	RootComponent = ItemMesh;
+	//create root
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent = Root;
+	
+	//create and configure static mesh
+	ItemStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemStaticMesh"));
+	ItemStaticMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ItemStaticMesh->SetCollisionProfileName(TEXT("Item"));
+	ItemStaticMesh->SetGenerateOverlapEvents(true);
+	ItemStaticMesh->SetupAttachment(Root);
+
+	//create and configure skeletal mesh
+	ItemSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemSkeletalMesh"));
+	ItemSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ItemSkeletalMesh->SetCollisionProfileName(TEXT("Item"));
+	ItemSkeletalMesh->SetGenerateOverlapEvents(true);
+	ItemSkeletalMesh->SetupAttachment(Root);
 }
 
 void AInv_MasterItem::BeginPlay()
@@ -31,21 +42,33 @@ void AInv_MasterItem::BeginPlay()
 
 void AInv_MasterItem::GetItemData_Implementation(FName& OutItemName, int32& OutQuantity)
 {
-	OutItemName = Name;
+	OutItemName = ID;
 	OutQuantity = Quantity;
 }
 
 void AInv_MasterItem::SetItemMesh() const
 {
-	//cria um actor component chamado item component, procura ele no mundo e pega dele o component do inventario
 	UActorComponent* ItemComponent = GetWorld()->GetFirstPlayerController()->GetPawn()->FindComponentByClass<UInventoryComponent>();
-
-	//verifica se o item component é valido e tem a interface aplicada
+	
 	if (ItemComponent && ItemComponent->GetClass() == UInventoryComponent::StaticClass())
 	{
-		//seta a mesh do item para ser a mesh recebida pela interface, passando seu nome para ser procurado na data table
-		UStaticMesh* DataTableMesh = IInv_InteractionInterface::Execute_GetItemMesh(ItemComponent, Name);
-		ItemMesh->SetStaticMesh(DataTableMesh);
+		UObject* DataTableMesh = IInv_InteractionInterface::Execute_GetItemMesh(ItemComponent, ID);
+		if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(DataTableMesh))
+		{
+			if (IsValid(ItemStaticMesh))
+			{
+				ItemStaticMesh->SetStaticMesh(StaticMesh);
+				ItemSkeletalMesh->SetSkeletalMesh(nullptr);
+			}
+		}
+		else if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(DataTableMesh))
+		{
+			if (IsValid(ItemSkeletalMesh))
+			{
+				ItemSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
+				ItemStaticMesh->SetStaticMesh(nullptr);
+			}
+		}
 	}
 }
 

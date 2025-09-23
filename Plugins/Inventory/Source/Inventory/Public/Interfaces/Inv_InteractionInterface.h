@@ -26,6 +26,6 @@ public:
 	void GetItemData(FName& OutItemName, int32& OutQuantity);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
-	UStaticMesh* GetItemMesh(FName RowName);
+	UObject* GetItemMesh(FName RowName);
 	
 };

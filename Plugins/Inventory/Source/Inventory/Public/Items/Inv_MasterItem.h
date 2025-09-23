@@ -28,8 +28,16 @@ public:
 	int32 Quantity;
     
 	UPROPERTY(EditAnywhere, Category = "Item Data")
-	FName Name;
+	FName ID;
 	
+	UPROPERTY(EditAnywhere)
+	UStaticMeshComponent* ItemStaticMesh;
+
+	UPROPERTY(EditAnywhere)
+	USkeletalMeshComponent* ItemSkeletalMesh;
+
+	UPROPERTY(EditAnywhere)
+	USceneComponent* Root;
 
 	
 	// ================================
@@ -51,8 +59,7 @@ private:
 	// ================================
 	
 	
-	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* ItemMesh;
+	
 
 	void SetItemMesh() const;
 	

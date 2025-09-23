@@ -57,11 +57,19 @@ void UInventoryHUD::UpdateHud(int32 ItemIndex)
 		if (!InventorySlots.IsValidIndex(ItemIndex)) return;
 		
 		const FItemData& ItemToUpdate = InventoryComponent->Inventory[ItemIndex];
-			
+
+		if (ItemToUpdate.ItemNumericData.Quantity <= 0)
+		{
+			InventorySlots[ItemIndex]->SetSlotInfo(nullptr, 0, ItemIndex);
+			InventorySlots[ItemIndex]->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	
 		UTexture2D* Icon = ItemToUpdate.ItemAssetData.Icon.LoadSynchronous();
 		int32 Quantity = ItemToUpdate.ItemNumericData.Quantity;
 	
 		InventorySlots[ItemIndex]->SetSlotInfo(Icon, Quantity, ItemIndex);
+		InventorySlots[ItemIndex]->SetVisibility(ESlateVisibility::Visible);
 		
 }
 

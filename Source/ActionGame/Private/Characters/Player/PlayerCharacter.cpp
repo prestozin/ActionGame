@@ -169,25 +169,25 @@ void APlayerCharacter::Interact()
 				// se other actor for valido, tiver a tag e tiver a interface, passe para proxima etapa
 			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
 			{
-				FName ItemName;
+				FName ID;
 				int32 Quantity;
 
 				// pegue a interface do other actor, e chame a função preenchida, defina de quem é a função (other actor) e preencha os inputs
 				NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass());
-				IInv_InteractionInterface::Execute_GetItemData(NearActor, ItemName, Quantity);
+				IInv_InteractionInterface::Execute_GetItemData(NearActor, ID, Quantity);
 
-				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ItemName.ToString());
+				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ID.ToString());
 
 				if (PlayerInventory)
 				{
-					PlayerInventory->AddItem(ItemName, Quantity);
+					PlayerInventory->AddItem(ID, Quantity);
 
 					NearActor->Destroy();
 				}
 
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ItemName.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ID.ToString());
 				}
 			}
 }

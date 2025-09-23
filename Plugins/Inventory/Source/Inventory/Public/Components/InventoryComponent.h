@@ -10,6 +10,7 @@
 
 class UUserWidget;
 class UInventoryHUD;
+class UInv_MasterItem;
 class UInv_InteractWidget;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -40,6 +41,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UInventoryHUD> HUDWidgetClass;
+
+	UPROPERTY()
+	TSubclassOf<AInv_MasterItem> ItemClass;
 	
 	UPROPERTY()
 	TObjectPtr<UInventoryHUD> InventoryHUD;
@@ -61,12 +65,14 @@ public:
 	
 	void StackItem(FItemData* Item);
 
-	void RemoveItem(int32 ItemIndex);
+	void RemoveItem(int32 Index);
+
+	void SpawnItem(const FItemData& Item);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SwapItemSlot(int32 SourceIndex, int32 DestinationIndex);
 
-	virtual UStaticMesh* GetItemMesh_Implementation (FName RowName) override;
+	virtual UObject* GetItemMesh_Implementation (FName RowName) override;
 private:
 	
 	// ================================

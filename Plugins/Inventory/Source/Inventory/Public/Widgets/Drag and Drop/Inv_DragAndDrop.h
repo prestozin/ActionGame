@@ -6,6 +6,7 @@
 #include "Blueprint/DragDropOperation.h"
 #include "Inv_DragAndDrop.generated.h"
 
+class UInventoryComponent;
 /**
  * 
  */
@@ -18,6 +19,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	int32 DraggedItemIndex;
+
 
 protected:
 

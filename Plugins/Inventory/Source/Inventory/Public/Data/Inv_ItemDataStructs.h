@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
+#include "Items/Inv_MasterItem.h"
 #include "Inv_ItemDataStructs.generated.h"
 
 //ENUMS
@@ -63,7 +64,7 @@ struct FItemAssetData
 	TSoftObjectPtr<UTexture2D> Icon;
 
 	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UStaticMesh> Mesh;
+	TSoftObjectPtr<UStaticMesh> StaticMesh;
 
 	UPROPERTY(EditAnywhere)
 	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
@@ -96,5 +97,8 @@ struct FItemData : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemAssetData ItemAssetData;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AInv_MasterItem> ItemClass;
 	
 };
