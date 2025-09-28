@@ -3,20 +3,21 @@
 
 #include "Characters/Player/PlayerCharacter.h"
 
-#include "Components/InventoryComponent.h"
+#include "Inventory/InventoryComponent.h"
 #include "Components/SphereComponent.h"
-
-#include "Interfaces/Inv_InteractionInterface.h"
+#include "Interfaces/InteractionInterface.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+<<<<<<< Updated upstream
+=======
 #include "Widgets/HUD/InventoryHUD.h"
-#include "Widgets/Item/Inv_InteractWidget.h"
+#include "Widgets/Interaction/Inv_InteractWidget.h"
 
+>>>>>>> Stashed changes
 // Sets default values
 APlayerCharacter::APlayerCharacter()
 {
@@ -46,16 +47,9 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//get player controller
-	PlayerController = Cast<APlayerController>(GetController());
-
 	
-	//widgets
-	InteractWidget = PlayerInventory->InteractWidget;
-	InventoryHUD = PlayerInventory->InventoryHUD;
-	
-	//Add input mapping context
-	if (PlayerController)
+		//Add input mapping context
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
 			//Get local player subsystem
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -72,7 +66,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 }
 
 
-#pragma region Input
+#pragma region Movement
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -84,7 +78,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		PlayerInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 		PlayerInput->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::Jump);
 		PlayerInput->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
-		PlayerInput->BindAction(OpenInventoryAction, ETriggerEvent::Started, this, &APlayerCharacter::OpenInventory);
 	}
 	
 }
@@ -127,22 +120,9 @@ void APlayerCharacter::Jump(const FInputActionValue& Value)
 void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
+	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass()))
 	{
 		NearActor = OtherActor;
-
-		//se o inventory hud for valido, mostre a mensagem de interact no overlap
-		if (OtherActor && InteractWidget)
-		{
-			InteractWidget->ShowInteractMessage(InteractWidget->GetPickupMessage());
-			UE_LOG(LogTemp, Warning, TEXT("interact widget is valid"));
-		}
-
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("interact widget is not valid"));
-		}
-		
 		UE_LOG(LogTemp, Warning, TEXT("Item próximo: %s"), *OtherActor->GetName());
 	}
 	
@@ -154,12 +134,6 @@ void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedCompone
 	if (OtherActor == NearActor)
 	{
 		NearActor = nullptr;
-
-		//se o ator mais proximo nao for valido, esconde a mensagem de interact no endoverlap
-		if (!NearActor && InteractWidget)
-		{
-			InteractWidget->HideInteractMessage();
-		}
 		UE_LOG(LogTemp, Warning, TEXT("ator fora de alcance"));
 	}
 }
@@ -167,53 +141,29 @@ void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedCompone
 void APlayerCharacter::Interact()
 {
 				// se other actor for valido, tiver a tag e tiver a interface, passe para proxima etapa
-			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
+			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass()))
 			{
-				FName ID;
+				FName ItemName;
 				int32 Quantity;
 
 				// pegue a interface do other actor, e chame a função preenchida, defina de quem é a função (other actor) e preencha os inputs
-				NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass());
-				IInv_InteractionInterface::Execute_GetItemData(NearActor, ID, Quantity);
+				NearActor->GetClass()->ImplementsInterface(UInteractionInterface::StaticClass());
+				IInteractionInterface::Execute_GetItemData(NearActor, ItemName, Quantity);
 
-				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ID.ToString());
+				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ItemName.ToString());
 
 				if (PlayerInventory)
 				{
-					PlayerInventory->AddItem(ID, Quantity);
+					PlayerInventory->AddItem(ItemName, Quantity);
 
 					NearActor->Destroy();
 				}
 
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ID.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Item e: %s não encontrado"), *ItemName.ToString());
 				}
 			}
 }
 
 #pragma endregion
-
-void APlayerCharacter::OpenInventory() 
-{
-	
-	if (InventoryHUD)
-	{
-		bool bInventoryOpen = InventoryHUD->ToggleHUD();
-		if (bInventoryOpen)
-		{
-			PlayerController->bShowMouseCursor = true;
-			bUseControllerRotationYaw = false;
-		}
-		else
-		{
-			PlayerController->bShowMouseCursor = false;
-			bUseControllerRotationYaw = true;
-		}
-	}
-	
-	
-	
-}
-
-

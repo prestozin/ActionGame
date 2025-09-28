@@ -3,7 +3,9 @@
 
 #include "Widgets/DropZone/Inv_DropZone.h"
 #include "Components/InventoryComponent.h"
-#include "Widgets/Drag and Drop/Inv_DragAndDrop.h"
+#include "Components/WrapBox.h"
+#include "Widgets/DragDrop/Inv_DragDrop.h"
+#include "Widgets/HUD/InventoryHUD.h"
 
 
 void UInv_DropZone::NativeConstruct()
@@ -19,12 +21,13 @@ void UInv_DropZone::NativeConstruct()
 
 bool UInv_DropZone::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
-	if (UInv_DragAndDrop* DragDrop = Cast<UInv_DragAndDrop>(InOperation))
+	if (UInv_DragDrop* DragDrop = Cast<UInv_DragDrop>(InOperation))
 	{
 		if (DragDrop)
 		{					
 			if (PlayerInventory)
 				{
+					PlayerInventory->SpawnItem(PlayerInventory->Inventory[DragDrop->DraggedItemIndex]);
 					PlayerInventory->RemoveItem(DragDrop->DraggedItemIndex);
 				}
 		}

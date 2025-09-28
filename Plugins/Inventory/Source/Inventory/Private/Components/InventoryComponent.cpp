@@ -1,11 +1,11 @@
 
 #include "Components/InventoryComponent.h"
-
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
-#include "Widgets/Item/Inv_InteractWidget.h"
+#include "Widgets/Interaction/Inv_InteractWidget.h"
 
+#pragma region StartSection
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -13,14 +13,12 @@ UInventoryComponent::UInventoryComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	//create necessary data
 	CreateDefaults();
-
 }
 
 void UInventoryComponent::CreateDefaults()
@@ -56,212 +54,253 @@ void UInventoryComponent::CreateHUDWidget()
 	}
 }
 
+#pragma endregion
+
+#pragma region InventoryFunctions
 
 void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 {
-
 	if (!DataTable) return;
 	
-	FItemData* Item = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
+	FItemData* CollectedItem = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
 
+	if (CollectedItem)
+	{
+		FItemData ItemToAdd = *CollectedItem;
+		ItemToAdd.ItemNumericData.Quantity = Quantity;
+        
+        	if (ItemToAdd.ItemNumericData.IsStackable && Inventory.Num() > 0)
+        	{
+        		StackOnAdd(&ItemToAdd);
+        	}
+		
+        	else
+        	{
+        		int32 ItemIndex = Inventory.Add(ItemToAdd);
+        		UpdateInventorySlot(EInventoryUpdateType::Add, ItemIndex);
+        	}
+        		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
+        	}
+}
+
+void UInventoryComponent::StackOnAdd(const FItemData* Item)
+{
 	if (Item)
 	{
-		FItemData ItemToAdd = *Item;
-        	ItemToAdd.ItemNumericData.Quantity = Quantity;
-        
-        	StackItem(&ItemToAdd);
-        
-        	//create a new index to each new item in the inventory
-        	for (int32 ItemIndex = 0; ItemIndex < Inventory.Num(); ItemIndex++)
-        	{
-        		//create a copy of the current item of the slot index in inventory
-        		const FItemData& CurrentItem = Inventory[ItemIndex];
-        
-        		//check if the current item in the slot and the new item are qual, if not, check if the quantity of current item is bigger than 0
-        		if (CurrentItem.ID == ItemToAdd.ID && CurrentItem.ItemNumericData.Quantity >0)
-        		{
-        			if (!InventoryHUD->InventorySlots.IsValidIndex(ItemIndex))
-        			{
-        				InventoryHUD->CreateItemSlot(ItemIndex);
-        			}
-        			InventoryHUD->UpdateHud(ItemIndex);
-        		}
-        	}
-        	
-        		
-        		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
-        		
-        	}
-	}
-	
+		FItemData ItemToStack = *Item;
+		for (int32 ItemIndex = 0; ItemIndex < Inventory.Num(); ItemIndex++)
+		{
+			FItemData& ExistingItem = Inventory[ItemIndex];
 
-void UInventoryComponent::StackItem(FItemData* Item)
-{
-					bool bItemFullyStacked = false;
-	        		FItemData ItemToAdd = *Item;
-	
-                        	if (ItemToAdd.ItemNumericData.IsStackable)
-                        	{
-                        		for (FItemData& ExistingItem : Inventory)
-                        		{
-                        			
-                        			if (ExistingItem.ID == ItemToAdd.ID)
-                        			{
-                        				//get the quantity left between max quantity - atual quantity
-                        				const int32 SpaceLeft =  ExistingItem.ItemNumericData.MaxQuantity - ExistingItem.ItemNumericData.Quantity;
-                        
-                        				//check if the space left between the previous two values is bigger than 0
-                        				if (SpaceLeft > 0) 
-                        				{
-                        					//if still have space left, set the bool stack
-                        					bItemFullyStacked = false;
-                        					
-                        					//create a variable to keep the value to add to current quantity
-                                         	const int32 AmountToAdd = FMath::Min(SpaceLeft, ItemToAdd.ItemNumericData.Quantity);
-                        
-                        					//sum these two values (Item quantity + quantity to add)
-                        					ExistingItem.ItemNumericData.Quantity += AmountToAdd;
-                
-                        					//get the item to add quantity, and subtract the quantity that was added to inventory
-                        					ItemToAdd.ItemNumericData.Quantity -= AmountToAdd;
-                        					
-                        					//if the quantity left to add is less or equal than 0, stop the stack
-                        					if (ItemToAdd.ItemNumericData.Quantity <= 0)
-                        					{
-                        						bItemFullyStacked = true;
-                        					}
-                        				
-                        				}
-                        			}
-                        		}
-                        	}
-                        
-                        	//if the quantity left is bigger than 0, create a new slot with this item
-                        	while (!bItemFullyStacked && ItemToAdd.ItemNumericData.Quantity > 0)
-                        		{
-                
-                        		    //get the maximum quantity that a new stack can have
-                        			int32 NewStack = FMath::Min(ItemToAdd.ItemNumericData.Quantity, ItemToAdd.ItemNumericData.MaxQuantity);
-                
-                        			//create a copy of item to add to not change the new stack value
-                        			FItemData NewItemStack = ItemToAdd;
-                
-                        			//modify the value of this item to use the maximum quantity left to stack
-                        			NewItemStack.ItemNumericData.Quantity = NewStack;
-
-                        			bool bPlacedInEmptySlot = false;
-
-                        			for (int32 Index = 0; Index < Inventory.Num(); Index++)
-                        			{
-                        				if (Inventory[Index].ItemNumericData.Quantity == 0)
-                        				{
-                        					Inventory[Index] = NewItemStack;
-                        					bPlacedInEmptySlot = true;
-
-                        					if (InventoryHUD)
-                        					{
-                        						if (!InventoryHUD->InventorySlots.IsValidIndex(Index))
-                        						{
-                        							InventoryHUD->CreateItemSlot(Index);
-                        						}
-                        						InventoryHUD->UpdateHud(Index);
-                        					}
-                        					break;
-                        				}
-                        			}
-
-                        			if (!bPlacedInEmptySlot)
-                        			{
-                        				//create a new slot with this maximum quantity left
-                        				Inventory.Add(NewItemStack);
-                        				if (InventoryHUD)
-                        				{
-                        					InventoryHUD->CreateItemSlot(Inventory.Num() - 1); 
-                        					InventoryHUD->UpdateHud(Inventory.Num() - 1); 
-                        				}
-                        			}
-                        		
-                        			//update the value of item to add to be the actual quantity - maximum quantity left in stack (new stack)
-                        			ItemToAdd.ItemNumericData.Quantity -= NewStack;
-                				}
-}
-
-void UInventoryComponent::SwapItemSlot(int32 SourceIndex, int32 DestinationIndex)
-{
-	if (Inventory.IsValidIndex(SourceIndex) && Inventory.IsValidIndex(DestinationIndex))
-	{
-
-		FItemData& DraggedSlot = Inventory[SourceIndex];
-		FItemData& DestinationSlot = Inventory[DestinationIndex];
-
-			if (DraggedSlot.ID.IsValid() && DestinationSlot.ID.IsValid() && DraggedSlot.ID == DestinationSlot.ID)
+			if (ExistingItem.ID == ItemToStack.ID && ExistingItem.ItemNumericData.IsStackable)
 			{
-				if (DraggedSlot.ItemNumericData.IsStackable && DestinationSlot.ItemNumericData.IsStackable)
+				const int32 SpaceFree  = ExistingItem.ItemNumericData.MaxQuantity - ExistingItem.ItemNumericData.Quantity;
+
+				if (SpaceFree > 0)
 				{
-					const int32 SpaceFree =  DestinationSlot.ItemNumericData.MaxQuantity - DestinationSlot.ItemNumericData.Quantity;
-					const int32 AmountToAdd = FMath::Min(SpaceFree, DraggedSlot.ItemNumericData.Quantity);
-                    				
-					if (SpaceFree > 0)
+					const int32 AmountToAdd = FMath::Min(SpaceFree, ItemToStack.ItemNumericData.Quantity);
+
+					ExistingItem.ItemNumericData.Quantity += AmountToAdd;
+					ItemToStack.ItemNumericData.Quantity -= AmountToAdd;
+
+					if (InventoryHUD)
 					{
-						DraggedSlot.ItemNumericData.Quantity -= AmountToAdd;
-						DestinationSlot.ItemNumericData.Quantity += AmountToAdd;
-                    
-						if (DraggedSlot.ItemNumericData.Quantity <= 0)
-						{
-							Inventory.RemoveAt(SourceIndex);
-						}
+						InventoryHUD->UpdateSlot(ItemIndex);	
 					}
 				}
-				               
-				//update hud
-				if (InventoryHUD)
-				{
-					
-					InventoryHUD->UpdateHud(SourceIndex);
-					InventoryHUD->UpdateHud(DestinationIndex);
-				}
-				UE_LOG(LogTemp, Warning, TEXT("Before Swap: %d=%s | %d=%s"), 
-				SourceIndex, *Inventory[SourceIndex].ID.ToString(),
-				DestinationIndex, *Inventory[DestinationIndex].ID.ToString());
 			}
-                
-			else
-			{
-				Inventory.Swap(SourceIndex, DestinationIndex);
-                UE_LOG(LogTemp, Warning, TEXT("After Swap: %d=%s | %d=%s"), 
-                SourceIndex, *Inventory[SourceIndex].ID.ToString(),
-                DestinationIndex, *Inventory[DestinationIndex].ID.ToString());					
-				if (InventoryHUD)
-				{
-					InventoryHUD->UpdateHud(SourceIndex);
-					InventoryHUD->UpdateHud(DestinationIndex);
-				}
-			}
+		}
 		
-	}
+		while (ItemToStack.ItemNumericData.Quantity > 0)
+		{
+			int32 NewStack = FMath::Min(ItemToStack.ItemNumericData.Quantity, ItemToStack.ItemNumericData.MaxQuantity);
 
-	
-				
+			FItemData NewStackSlot = ItemToStack;
+			NewStackSlot.ItemNumericData.Quantity = NewStack;
+
+			int32 SlotIndex = Inventory.Add(NewStackSlot);
+			UpdateInventorySlot(EInventoryUpdateType::Add, SlotIndex);
+
+			ItemToStack.ItemNumericData.Quantity -= NewStack;
+		}
+	}
 }
 
+void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex)
+{
+	if (Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex))
+	{
+		FItemData& DraggedSlot = Inventory[DraggedIndex];
+		FItemData& DestinationSlot = Inventory[DestinationIndex];
+		
+		if (DestinationSlot.ID == DraggedSlot.ID && DestinationSlot.ItemNumericData.IsStackable)
+		{
+			const int32 SpaceFree = DestinationSlot.ItemNumericData.MaxQuantity - DestinationSlot.ItemNumericData.Quantity;
+			const int32 AmountToAdd = FMath::Min(SpaceFree, DraggedSlot.ItemNumericData.Quantity);
 
+			if (AmountToAdd > 0)
+			{
+				DestinationSlot.ItemNumericData.Quantity += AmountToAdd;
+				DraggedSlot.ItemNumericData.Quantity -= AmountToAdd;
+				
+				if (InventoryHUD)
+				{
+					UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+				}
+			}
+		}
+
+		if (DraggedSlot.ItemNumericData.Quantity <= 0)
+		{
+			Inventory.RemoveAt(DraggedIndex);
+			UpdateInventorySlot(EInventoryUpdateType::Remove, DraggedIndex);
+		}
+	}
+}
+
+void UInventoryComponent::SplitStack(int32 Index, int32 QuantityToSplit)
+{
+	if (Inventory.IsValidIndex(Index))
+	{
+		FItemData& ItemToSplit = Inventory[Index];
+		
+		if (QuantityToSplit <= 0 || QuantityToSplit >= ItemToSplit.ItemNumericData.Quantity) return;
+		
+		FItemData NewStack = ItemToSplit;
+		
+		NewStack.ItemNumericData.Quantity = QuantityToSplit;
+		ItemToSplit.ItemNumericData.Quantity -= QuantityToSplit;
+		
+		int32 IndexToInsert = Inventory.Insert(NewStack, Index + 1);
+		if (InventoryHUD)
+		{
+			UpdateInventorySlot(EInventoryUpdateType::Insert, Index, IndexToInsert);
+		}
+	}
+}
+
+void UInventoryComponent::SwapItemSlot(int32 DraggedIndex, int32 DestinationIndex)
+{
+	if (Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex))
+	{
+		if (Inventory[DraggedIndex].ItemNumericData.IsStackable && Inventory[DestinationIndex].ItemNumericData.IsStackable)
+		{
+			StackOnSwap(DraggedIndex, DestinationIndex);
+		}
+		else
+		{
+			Inventory.Swap(DraggedIndex, DestinationIndex);
+			UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+		}
+	}
+}
 
 void UInventoryComponent::RemoveItem(int32 Index)
 {
-	if (!Inventory.IsValidIndex(Index)) return; 
-	FItemData& ItemToRemove = Inventory[Index];
-	SpawnItem(ItemToRemove);
-	ItemToRemove = FItemData();
-	
-	if (InventoryHUD)
+	if (Inventory.IsValidIndex(Index))
 	{
-		InventoryHUD->UpdateHud(Index);
+		Inventory.RemoveAt(Index);
+		UpdateInventorySlot(EInventoryUpdateType::Remove, Index);
 	}
 }
 
-void UInventoryComponent::SpawnItem(const FItemData& Item)
+#pragma endregion
+
+#pragma region UpdateSection
+
+template<typename... Indexes>	//create a list called indexes, that accept various indexes
+void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes)
+{
+	if (!InventoryHUD) return;
+	
+	TArray<int32> IndexesToUpdate = { ModifiedIndexes...};
+	
+	switch(UpdateType)
+	{
+	case
+		EInventoryUpdateType::Add:
+		UpdateOnAdd(IndexesToUpdate);
+		break;
+		
+	case
+	EInventoryUpdateType::Insert:
+		UpdateOnInsert(IndexesToUpdate);
+		break;
+
+	case
+	EInventoryUpdateType::Remove:
+		UpdateOnRemove(IndexesToUpdate);
+		break;
+		
+	case
+		EInventoryUpdateType::Swap:
+		UpdateOnSwap(IndexesToUpdate);
+		break;
+	}
+	
+	InventoryHUD->UpdateIndexes();
+}
+
+void UInventoryComponent::UpdateOnAdd(const TArray<int32>& IndexesToUpdate)
+{
+	for (int32 Index : IndexesToUpdate)
+	{
+		int32 IndexToAdd = Index;
+		if (Inventory.IsValidIndex(IndexToAdd) && !InventoryHUD->InventorySlots.IsValidIndex(IndexToAdd))
+		{
+			InventoryHUD->CreateItemSlot(IndexToAdd);
+		}
+	}
+}
+
+void UInventoryComponent::UpdateOnSwap(const TArray<int32>& IndexesToUpdate)
+{
+	for (int32 Index : IndexesToUpdate)
+	{
+		InventoryHUD->UpdateSlot(Index);
+	}
+}
+
+void UInventoryComponent::UpdateOnInsert(const TArray<int32>& IndexesToUpdate)
+{
+	for (int32 Index : IndexesToUpdate)
+	{
+		int32 IndexToInsert = Index;
+		if (Inventory.IsValidIndex(IndexToInsert) && !InventoryHUD->InventorySlots.IsValidIndex(IndexToInsert))
+		{
+			//only insert between slots that already exists, verifying if it's not the first and last slot, if it is, create a new slot instead
+			if (IndexToInsert > 0 && InventoryHUD->InventorySlots.IsValidIndex(IndexToInsert -1))
+			{
+				InventoryHUD->InsertSlotAtIndex(IndexToInsert);
+			}
+			else
+			{
+				InventoryHUD->CreateItemSlot(IndexToInsert);
+			}
+			InventoryHUD->UpdateSlot(IndexToInsert);
+			InventoryHUD->UpdateSlot(IndexToInsert - 1);
+		}
+	}
+}
+
+void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
+{
+	//remove in ascending order to make sure that the biggest index is removed first
+	for (int32 Index = IndexesToUpdate.Num() -1; Index >= 0; --Index)  
+	{
+		int32 IndexToRemove = IndexesToUpdate[Index];
+		if (!Inventory.IsValidIndex(IndexToRemove) && InventoryHUD->InventorySlots.IsValidIndex(IndexToRemove))
+		{
+			InventoryHUD->RemoveSlotAtIndex(IndexToRemove);
+		}
+	}
+}
+
+#pragma endregion
+
+const void UInventoryComponent::SpawnItem(const FItemData& Item)
 {	
-	if ( UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld())
 	{
 		
 		FVector SpawnLocation = GetOwner()->GetActorLocation();
@@ -289,12 +328,10 @@ void UInventoryComponent::SpawnItem(const FItemData& Item)
 				{
 					SpawnedItem->ItemSkeletalMesh->SetSkeletalMesh(Item.ItemAssetData.SkeletalMesh.LoadSynchronous());
 				}
-				
 			}
 		}
 	}
 }
-
 
 UObject* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
 {

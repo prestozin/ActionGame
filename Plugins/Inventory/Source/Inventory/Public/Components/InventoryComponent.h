@@ -1,6 +1,13 @@
-
-
 #pragma once
+
+UENUM()
+enum class EInventoryUpdateType : uint8
+{
+	Add UMETA(DisplayName = "Add"),
+	Insert  UMETA(DisplayName = "Insert"),
+	Remove  UMETA(DisplayName = "Remove"),
+	Swap    UMETA(DisplayName = "Swap")
+};
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -12,6 +19,7 @@ class UUserWidget;
 class UInventoryHUD;
 class UInv_MasterItem;
 class UInv_InteractWidget;
+
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InteractionInterface
@@ -54,8 +62,6 @@ public:
 	UPROPERTY()
 	UInv_InteractWidget* InteractWidget = nullptr;
 
-	bool bShouldStackedItem = false;
-
 	
 	// ================================
 	// =        FUNCTIONS            =
@@ -63,33 +69,46 @@ public:
 
 	void AddItem(FName RowName, int32 Quantity);
 	
-	void StackItem(FItemData* Item);
+	void SplitStack (int32 Index, int32 QuantityToSplit);
 
 	void RemoveItem(int32 Index);
-
-	void SpawnItem(const FItemData& Item);
+	
+	template<typename... Indexes>
+	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SwapItemSlot(int32 SourceIndex, int32 DestinationIndex);
 
 	virtual UObject* GetItemMesh_Implementation (FName RowName) override;
+	
+	const void SpawnItem(const FItemData& Item);
+	
 private:
 	
 	// ================================
 	// =        PROPERTIES          =
 	// =================================
-
 	
-	//get the owner player controller
+	
 	TWeakObjectPtr<APlayerController> OwningController;
-
 	
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
+	
+	void StackOnAdd(const FItemData* Item);
+
+	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
 
 	void CreateHUDWidget();
 
 	void CreateDefaults();
-	
+
+	void UpdateOnSwap (const TArray<int32>& IndexesToUpdate);
+
+	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);
+
+	void UpdateOnInsert(const TArray<int32>& IndexesToUpdate);
+
+	void UpdateOnRemove(const TArray<int32>& IndexesToUpdate);
 };

@@ -5,7 +5,7 @@
 #include "Widgets/Item/Inv_ItemSlot.h"
 #include "Components/InventoryComponent.h"
 #include "Components/WrapBox.h"
-#include "Widgets/Drag and Drop/Inv_OnDragSlot.h"
+#include "Widgets/DragDrop/Inv_OnDragSlot.h"
 
 
 
@@ -18,22 +18,19 @@ void UInventoryHUD::NativeConstruct()
 	
 }
 
-
-
 void UInventoryHUD::CreateItemSlot(int32 ItemIndex)
 {
-	
 	if (InventoryComponent->Inventory.IsValidIndex(ItemIndex))
 	{
 		const FItemData& Item = InventoryComponent->Inventory[ItemIndex];
 		UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();;
 		int32 Quantity = Item.ItemNumericData.Quantity;;
-		
 				       
 		NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
 		UInv_OnDragSlot* OnDragWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
 		if (NewSlot)
 		{
+			NewSlot->PlayerInventory = InventoryComponent;
 			NewSlot->OnDragVisual = OnDragWidget;
             		
             		if (InventorySlots.Num() <= ItemIndex)
@@ -42,37 +39,94 @@ void UInventoryHUD::CreateItemSlot(int32 ItemIndex)
             		}
             		
             		InventorySlots[ItemIndex] = NewSlot;
-            				
-            		NewSlot->SetSlotInfo(Icon, Quantity, ItemIndex);
-            		NewSlot->GetInventory(InventoryComponent);
-            		InventoryWrapBox->AddChildToWrapBox(NewSlot);
+
+					if (NewSlot)
+					{
+						NewSlot->SetSlotInfo(Icon, Quantity, ItemIndex);
+						NewSlot->PlayerInventory = InventoryComponent;
+						InventoryWrapBox->AddChildToWrapBox(NewSlot);
+					}
 		}
 	}
 }
 
-void UInventoryHUD::UpdateHud(int32 ItemIndex)
+void UInventoryHUD::UpdateSlot(int32 ItemIndex)
 {
+	if (!InventoryComponent || InventorySlots.Num() < 0 || !InventorySlots.IsValidIndex(ItemIndex) ) return;
 	
-		if (!InventoryComponent->Inventory.IsValidIndex(ItemIndex)) return;
-		if (!InventorySlots.IsValidIndex(ItemIndex)) return;
+	if (!InventoryComponent->Inventory.IsValidIndex(ItemIndex))
+	{
+		RemoveSlotAtIndex(ItemIndex);
+		return;
+	}
 		
-		const FItemData& ItemToUpdate = InventoryComponent->Inventory[ItemIndex];
-
-		if (ItemToUpdate.ItemNumericData.Quantity <= 0)
-		{
-			InventorySlots[ItemIndex]->SetSlotInfo(nullptr, 0, ItemIndex);
-			InventorySlots[ItemIndex]->SetVisibility(ESlateVisibility::Collapsed);
-			return;
-		}
+	const FItemData& ItemToUpdate = InventoryComponent->Inventory[ItemIndex];
 	
-		UTexture2D* Icon = ItemToUpdate.ItemAssetData.Icon.LoadSynchronous();
-		int32 Quantity = ItemToUpdate.ItemNumericData.Quantity;
+	UInv_ItemSlot* SlotToUpdate = InventorySlots[ItemIndex];
+	if (!SlotToUpdate) return;
 	
-		InventorySlots[ItemIndex]->SetSlotInfo(Icon, Quantity, ItemIndex);
-		InventorySlots[ItemIndex]->SetVisibility(ESlateVisibility::Visible);
-		
+	UTexture2D* Icon = ItemToUpdate.ItemAssetData.Icon.LoadSynchronous();
+	int32 Quantity = ItemToUpdate.ItemNumericData.Quantity;
+	
+	SlotToUpdate->SetSlotInfo(Icon, Quantity, ItemIndex);
+	UpdateIndexes();
 }
 
+void UInventoryHUD::UpdateIndexes()
+{
+	//for each slot that exist in inventory slots array, set the index of slot in array to be the index of the slot itself
+	for (int32 Index = 0; Index < InventorySlots.Num(); Index++)
+	{
+		if (InventorySlots[Index])
+		{
+			InventorySlots[Index]->SetSlotIndex(Index);
+		}
+	}
+}
+
+void UInventoryHUD::RemoveSlotAtIndex(int32 IndexToRemove)
+{
+	if (InventorySlots.IsValidIndex(IndexToRemove))
+	{
+		UInv_ItemSlot* SlotToRemove = InventorySlots[IndexToRemove];
+		if (SlotToRemove && InventoryWrapBox)
+		{
+			InventorySlots.RemoveAt(IndexToRemove);
+			InventoryWrapBox->RemoveChild(SlotToRemove);
+		}
+		UpdateIndexes();
+	}
+}
+
+void UInventoryHUD::InsertSlotAtIndex(int32 ItemIndex)
+{
+	
+	if (UInv_ItemSlot* SlotToInsert  = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass))
+	{
+		UInv_OnDragSlot* OnDragWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
+		
+		if (OnDragWidget && InventoryComponent)
+		{
+			SlotToInsert->OnDragVisual = OnDragWidget;
+			SlotToInsert->PlayerInventory = InventoryComponent;
+		}
+		
+		InventorySlots.Insert(SlotToInsert, ItemIndex);
+		
+		if (InventoryWrapBox)
+		{
+			InventoryWrapBox->ClearChildren();
+			for (UInv_ItemSlot* InvSlot : InventorySlots)
+			{
+				if (InvSlot)
+				{
+					InventoryWrapBox->AddChildToWrapBox(InvSlot);
+				}
+			}
+		}
+		UpdateIndexes();
+	}
+}
 
 bool UInventoryHUD::ToggleHUD()
 {
@@ -87,7 +141,6 @@ bool UInventoryHUD::ToggleHUD()
 		return true;
 	}
 }
-
 
 void UInventoryHUD::GetInventoryComponent(UInventoryComponent* PlayerInventory)
 {

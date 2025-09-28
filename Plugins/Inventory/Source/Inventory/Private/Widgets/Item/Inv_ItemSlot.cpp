@@ -5,9 +5,10 @@
 
 #include "Components/InventoryComponent.h"
 #include "Components/Image.h"
-#include  "Components/TextBlock.h"
-#include "Widgets/Drag and Drop/Inv_DragAndDrop.h"
-#include "Widgets/Drag and Drop/Inv_OnDragSlot.h"
+#include "Components/TextBlock.h"
+#include "Widgets/DragDrop/Inv_DragDrop.h"
+#include "Widgets/DragDrop/Inv_OnDragSlot.h"
+#include "Widgets/SplitStack//Inv_SplitStack.h"
 
 void UInv_ItemSlot::NativeConstruct()
 {
@@ -17,7 +18,7 @@ void UInv_ItemSlot::NativeConstruct()
 void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	UInv_DragAndDrop* DragDrop = NewObject<UInv_DragAndDrop>();
+	UInv_DragDrop* DragDrop = NewObject<UInv_DragDrop>();
 	
 	if (OnDragVisual)
 	{
@@ -29,22 +30,40 @@ void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoi
 	}
 }
 
+FReply UInv_ItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if (InMouseEvent.IsControlDown())
+		{
+			SplitStackWidget = CreateWidget<UInv_SplitStack>(GetWorld(), SplitStackClass);
+			if (SplitStackWidget)
+			{
+				SplitStackWidget->SlotIndex = SlotIndex;
+				SplitStackWidget->PlayerInventory = PlayerInventory;
+				SplitStackWidget->AddToViewport();
+				
+			}
+			return FReply::Handled();
+		}
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
 bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-	UDragDropOperation* InOperation)
+                                 UDragDropOperation* InOperation)
 {
 	if (!InOperation) return false;
 	
-	UInv_DragAndDrop* DragAndDrop = Cast<UInv_DragAndDrop>(InOperation);
+	UInv_DragDrop* DragAndDrop = Cast<UInv_DragDrop>(InOperation);
 
 	int32 DraggedIndex = DragAndDrop->DraggedItemIndex;
 
-	if (SlotIndex != DraggedIndex)
+	if (PlayerInventory && SlotIndex != DraggedIndex)
 	{
 		PlayerInventory->SwapItemSlot(DraggedIndex, SlotIndex);
 	}
 	return true;
-	
-	
 }
 
 
@@ -58,11 +77,6 @@ void UInv_ItemSlot::SetSlotInfo(UTexture2D* Icon, int32 Quantity, int32 Index)
 	
 		ImageIcon->SetBrushFromTexture(SlotIcon);
 		TextItemQuantity->SetText(FText::AsNumber(SlotQuantity));
-}
-
-void UInv_ItemSlot::GetInventory(UInventoryComponent* Inventory)
-{
-	PlayerInventory = Inventory;
 }
 
 void UInv_ItemSlot::SetSlotIndex(int32 Index)

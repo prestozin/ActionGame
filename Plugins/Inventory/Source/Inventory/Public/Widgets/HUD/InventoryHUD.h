@@ -61,7 +61,7 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UWrapBox* InventoryWrapBox;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TArray<UInv_ItemSlot*> InventorySlots;
 
 	// ================================
@@ -76,7 +76,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	void CreateItemSlot(int32 ItemIndex);
 
-	void UpdateHud(int32 ItemIndex);
+	void InsertSlotAtIndex(int32 ItemIndex);
+	
+	void UpdateSlot(int32 ItemIndex);
+
+	void UpdateIndexes();
+
+	void RemoveSlotAtIndex(int32 IndexToRemove);
 
 protected:
 	
