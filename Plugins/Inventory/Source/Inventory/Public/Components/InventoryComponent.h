@@ -3,7 +3,7 @@
 UENUM()
 enum class EInventoryUpdateType : uint8
 {
-	Add UMETA(DisplayName = "Add"),
+	Create		UMETA(DisplayName = "Add"),
 	Insert  UMETA(DisplayName = "Insert"),
 	Remove  UMETA(DisplayName = "Remove"),
 	Swap    UMETA(DisplayName = "Swap")
@@ -69,7 +69,7 @@ public:
 
 	void AddItem(FName RowName, int32 Quantity);
 	
-	void SplitStack (int32 Index, int32 QuantityToSplit);
+	void SplitStack (int32 IndexToSplit, int32 QuantityToSplit);
 
 	void RemoveItem(int32 Index);
 	
@@ -108,7 +108,7 @@ private:
 
 	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);
 
-	void UpdateOnInsert(const TArray<int32>& IndexesToUpdate);
+	void UpdateOnSplit(const TArray<int32>& IndexesToUpdate);
 
 	void UpdateOnRemove(const TArray<int32>& IndexesToUpdate);
 };

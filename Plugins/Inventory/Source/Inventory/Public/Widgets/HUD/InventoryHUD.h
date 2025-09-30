@@ -1,6 +1,15 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
+
+UENUM()
+enum class EHUDUpdates : uint8
+{
+	Create	UMETA(DisplayName = "Create"),
+	Insert  UMETA(DisplayName = "Insert"),
+	Remove  UMETA(DisplayName = "Remove"),
+	Existing   UMETA(DisplayName = "Existing")
+};
+
+
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -20,6 +29,7 @@ UCLASS()
 class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_InteractionInterface
 {
 	GENERATED_BODY()
+	
 private:
 	
 	// ================================
@@ -32,22 +42,23 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UInv_ItemSlot> ItemSlotClass;
 	
-	UPROPERTY()
-	UInv_ItemSlot* NewSlot;
-
-	UPROPERTY()
-	UInventoryComponent* InventoryComponent;
-	
 	UPROPERTY(EditDefaultsOnly, Category="Inventory")
 	TSubclassOf<UInv_OnDragSlot> DragSlotClass;
-
 	
+	UPROPERTY(meta = (BindWidget))
+	UWrapBox* InventoryWrapBox;
+			
 	// ================================
 	// =       FUNCTIONS           =
 	// ================================
+    	
+	void CreateSlot(TArray<int32> IndexesToUpdate);
+    
+	void InsertSlot(TArray<int32> IndexesToUpdate);
+    	
+	void RemoveSlot(TArray<int32> IndexesToUpdate);
 
-	
-	
+	void UpdateExistingSlot(TArray<int32> IndexesToUpdate);
 	
 public:
 	
@@ -56,34 +67,52 @@ public:
 	// ================================
 
 	UPROPERTY()
-	bool bInventoryOpen;
+	UInventoryComponent* PlayerInventory;
 
-	UPROPERTY(meta = (BindWidget))
-	UWrapBox* InventoryWrapBox;
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	TArray<UInv_ItemSlot*> InventorySlots;
+	
+	UPROPERTY()
+	bool bInventoryOpen;
 
 	// ================================
 	// =       FUNCTIONS           =
 	// ================================
 	
-
 	bool ToggleHUD();
-
-	void GetInventoryComponent(UInventoryComponent* PlayerInventory);
 	
-	UFUNCTION(BlueprintCallable, Category="Inventory")
-	void CreateItemSlot(int32 ItemIndex);
-
-	void InsertSlotAtIndex(int32 ItemIndex);
-	
-	void UpdateSlot(int32 ItemIndex);
-
 	void UpdateIndexes();
 
-	void RemoveSlotAtIndex(int32 IndexToRemove);
+	template<typename... Indexes>
+	void UpdateSlots(EHUDUpdates UpdateType, Indexes... ModifiedIndexes)
+	{
+		TArray<int32> IndexesToUpdate = { ModifiedIndexes... };
 
+		if (!PlayerInventory) return;
+		
+		UpdateIndexes();
+		
+		switch (UpdateType)
+		{
+		case EHUDUpdates::Create:
+			CreateSlot(IndexesToUpdate);
+			break;
+        
+		case EHUDUpdates::Remove:
+			RemoveSlot(IndexesToUpdate);
+			break;
+        
+		case EHUDUpdates::Insert:
+			InsertSlot(IndexesToUpdate);
+			break;
+
+		case EHUDUpdates::Existing:
+			UpdateExistingSlot(IndexesToUpdate);
+			break;
+		}
+		UpdateIndexes();
+	}
+	
 protected:
 	
 	virtual void NativeConstruct() override;

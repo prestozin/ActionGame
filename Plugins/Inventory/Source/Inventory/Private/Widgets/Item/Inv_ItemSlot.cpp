@@ -69,18 +69,33 @@ bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 
 
 void UInv_ItemSlot::SetSlotInfo(UTexture2D* Icon, int32 Quantity, int32 Index)
-
 {
-		SlotIcon = Icon;
-		SlotQuantity = Quantity;
-		SlotIndex = Index;
-	
-		ImageIcon->SetBrushFromTexture(SlotIcon);
-		TextItemQuantity->SetText(FText::AsNumber(SlotQuantity));
+	if (Icon && Quantity)
+	{
+		if (Icon != SlotIcon)
+		{
+			SlotIcon = Icon;
+			ImageIcon->SetBrushFromTexture(SlotIcon);
+		}
+		
+		if (Quantity != SlotQuantity)
+		{
+			SlotQuantity = Quantity;
+			TextItemQuantity->SetText(FText::AsNumber(SlotQuantity));
+		}
+
+		if (Index >= 0)
+		{
+			SlotIndex = Index;
+		}
+	}
 }
 
 void UInv_ItemSlot::SetSlotIndex(int32 Index)
 {
-	SlotIndex = Index;
+	if (Index >= 0)
+	{
+		SlotIndex = Index;
+	}
 }
 

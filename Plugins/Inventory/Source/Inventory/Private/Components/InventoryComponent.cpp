@@ -45,12 +45,12 @@ void UInventoryComponent::CreateHUDWidget()
 	{
 		InventoryHUD = CreateWidget<UInventoryHUD>(OwningController.Get(),HUDWidgetClass);
         
-        	if (IsValid(InventoryHUD))
-        	{
-        		InventoryHUD->GetInventoryComponent(this);
-        		InventoryHUD->AddToViewport();
-        		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
-        	}
+		if (InventoryHUD)
+		{
+			InventoryHUD->PlayerInventory = this;
+			InventoryHUD->AddToViewport();
+			InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 }
 
@@ -77,7 +77,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
         	else
         	{
         		int32 ItemIndex = Inventory.Add(ItemToAdd);
-        		UpdateInventorySlot(EInventoryUpdateType::Add, ItemIndex);
+        		UpdateInventorySlot(EInventoryUpdateType::Create, ItemIndex);
         	}
         		UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
         	}
@@ -105,7 +105,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 
 					if (InventoryHUD)
 					{
-						InventoryHUD->UpdateSlot(ItemIndex);	
+						InventoryHUD->UpdateSlots(EHUDUpdates::Existing, ItemIndex);	
 					}
 				}
 			}
@@ -119,7 +119,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 			NewStackSlot.ItemNumericData.Quantity = NewStack;
 
 			int32 SlotIndex = Inventory.Add(NewStackSlot);
-			UpdateInventorySlot(EInventoryUpdateType::Add, SlotIndex);
+			UpdateInventorySlot(EInventoryUpdateType::Create, SlotIndex);
 
 			ItemToStack.ItemNumericData.Quantity -= NewStack;
 		}
@@ -158,11 +158,11 @@ void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex
 	}
 }
 
-void UInventoryComponent::SplitStack(int32 Index, int32 QuantityToSplit)
+void UInventoryComponent::SplitStack(int32 IndexToSplit, int32 QuantityToSplit)
 {
-	if (Inventory.IsValidIndex(Index))
+	if (Inventory.IsValidIndex(IndexToSplit))
 	{
-		FItemData& ItemToSplit = Inventory[Index];
+		FItemData& ItemToSplit = Inventory[IndexToSplit];
 		
 		if (QuantityToSplit <= 0 || QuantityToSplit >= ItemToSplit.ItemNumericData.Quantity) return;
 		
@@ -171,11 +171,10 @@ void UInventoryComponent::SplitStack(int32 Index, int32 QuantityToSplit)
 		NewStack.ItemNumericData.Quantity = QuantityToSplit;
 		ItemToSplit.ItemNumericData.Quantity -= QuantityToSplit;
 		
-		int32 IndexToInsert = Inventory.Insert(NewStack, Index + 1);
-		if (InventoryHUD)
-		{
-			UpdateInventorySlot(EInventoryUpdateType::Insert, Index, IndexToInsert);
-		}
+		int32 IndexToInsert =  IndexToSplit + 1;
+		Inventory.Insert(NewStack, IndexToInsert);
+
+		UpdateInventorySlot(EInventoryUpdateType::Insert, IndexToSplit, IndexToInsert);
 	}
 }
 
@@ -218,13 +217,13 @@ void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, I
 	switch(UpdateType)
 	{
 	case
-		EInventoryUpdateType::Add:
+		EInventoryUpdateType::Create:
 		UpdateOnAdd(IndexesToUpdate);
 		break;
 		
 	case
 	EInventoryUpdateType::Insert:
-		UpdateOnInsert(IndexesToUpdate);
+		UpdateOnSplit(IndexesToUpdate);
 		break;
 
 	case
@@ -248,7 +247,7 @@ void UInventoryComponent::UpdateOnAdd(const TArray<int32>& IndexesToUpdate)
 		int32 IndexToAdd = Index;
 		if (Inventory.IsValidIndex(IndexToAdd) && !InventoryHUD->InventorySlots.IsValidIndex(IndexToAdd))
 		{
-			InventoryHUD->CreateItemSlot(IndexToAdd);
+			InventoryHUD->UpdateSlots(EHUDUpdates::Create, IndexToAdd);
 		}
 	}
 }
@@ -257,29 +256,19 @@ void UInventoryComponent::UpdateOnSwap(const TArray<int32>& IndexesToUpdate)
 {
 	for (int32 Index : IndexesToUpdate)
 	{
-		InventoryHUD->UpdateSlot(Index);
+		InventoryHUD->UpdateSlots(EHUDUpdates::Existing, Index);
 	}
 }
 
-void UInventoryComponent::UpdateOnInsert(const TArray<int32>& IndexesToUpdate)
+void UInventoryComponent::UpdateOnSplit(const TArray<int32>& IndexesToUpdate)
 {
-	for (int32 Index : IndexesToUpdate)
+	if (IndexesToUpdate.Num() < 2) return;
+	
+	int32 IndexToInsert = FMath::Max(IndexesToUpdate[0], IndexesToUpdate[1]);
+		
+	if (Inventory.IsValidIndex(IndexToInsert))
 	{
-		int32 IndexToInsert = Index;
-		if (Inventory.IsValidIndex(IndexToInsert) && !InventoryHUD->InventorySlots.IsValidIndex(IndexToInsert))
-		{
-			//only insert between slots that already exists, verifying if it's not the first and last slot, if it is, create a new slot instead
-			if (IndexToInsert > 0 && InventoryHUD->InventorySlots.IsValidIndex(IndexToInsert -1))
-			{
-				InventoryHUD->InsertSlotAtIndex(IndexToInsert);
-			}
-			else
-			{
-				InventoryHUD->CreateItemSlot(IndexToInsert);
-			}
-			InventoryHUD->UpdateSlot(IndexToInsert);
-			InventoryHUD->UpdateSlot(IndexToInsert - 1);
-		}
+		InventoryHUD->UpdateSlots(EHUDUpdates::Insert, IndexesToUpdate);
 	}
 }
 
@@ -289,9 +278,9 @@ void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
 	for (int32 Index = IndexesToUpdate.Num() -1; Index >= 0; --Index)  
 	{
 		int32 IndexToRemove = IndexesToUpdate[Index];
-		if (!Inventory.IsValidIndex(IndexToRemove) && InventoryHUD->InventorySlots.IsValidIndex(IndexToRemove))
+		if (InventoryHUD->InventorySlots.IsValidIndex(IndexToRemove))
 		{
-			InventoryHUD->RemoveSlotAtIndex(IndexToRemove);
+			InventoryHUD->UpdateSlots(EHUDUpdates::Remove, IndexToRemove);
 		}
 	}
 }
