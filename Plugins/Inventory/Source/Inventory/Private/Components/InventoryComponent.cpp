@@ -83,6 +83,51 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
         	}
 }
 
+void UInventoryComponent::SplitItem(int32 IndexToSplit, int32 QuantityToSplit)
+{
+	if (Inventory.IsValidIndex(IndexToSplit))
+	{
+		FItemData& ItemToSplit = Inventory[IndexToSplit];
+		
+		if (QuantityToSplit <= 0 || QuantityToSplit >= ItemToSplit.ItemNumericData.Quantity) return;
+		
+		FItemData NewStack = ItemToSplit;
+		
+		NewStack.ItemNumericData.Quantity = QuantityToSplit;
+		ItemToSplit.ItemNumericData.Quantity -= QuantityToSplit;
+		
+		int32 IndexToInsert =  IndexToSplit + 1;
+		Inventory.Insert(NewStack, IndexToInsert);
+
+		UpdateInventorySlot(EInventoryUpdateType::Insert, IndexToSplit, IndexToInsert);
+	}
+}
+
+void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
+{
+	if (Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex))
+	{
+		if (Inventory[DraggedIndex].ItemNumericData.IsStackable && Inventory[DestinationIndex].ItemNumericData.IsStackable)
+		{
+			StackOnSwap(DraggedIndex, DestinationIndex);
+			return;
+		}
+		
+		Inventory.Swap(DraggedIndex, DestinationIndex);
+		UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+	}
+}
+
+void UInventoryComponent::RemoveItem(int32 Index)
+{
+	if (Inventory.IsValidIndex(Index))
+	{
+		Inventory.RemoveAt(Index);
+		UpdateInventorySlot(EInventoryUpdateType::Remove, Index);
+	}
+}
+
+
 void UInventoryComponent::StackOnAdd(const FItemData* Item)
 {
 	if (Item)
@@ -142,66 +187,18 @@ void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex
 			{
 				DestinationSlot.ItemNumericData.Quantity += AmountToAdd;
 				DraggedSlot.ItemNumericData.Quantity -= AmountToAdd;
-				
-				if (InventoryHUD)
-				{
-					UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
-				}
 			}
-		}
 
-		if (DraggedSlot.ItemNumericData.Quantity <= 0)
-		{
-			Inventory.RemoveAt(DraggedIndex);
-			UpdateInventorySlot(EInventoryUpdateType::Remove, DraggedIndex);
-		}
-	}
-}
-
-void UInventoryComponent::SplitStack(int32 IndexToSplit, int32 QuantityToSplit)
-{
-	if (Inventory.IsValidIndex(IndexToSplit))
-	{
-		FItemData& ItemToSplit = Inventory[IndexToSplit];
-		
-		if (QuantityToSplit <= 0 || QuantityToSplit >= ItemToSplit.ItemNumericData.Quantity) return;
-		
-		FItemData NewStack = ItemToSplit;
-		
-		NewStack.ItemNumericData.Quantity = QuantityToSplit;
-		ItemToSplit.ItemNumericData.Quantity -= QuantityToSplit;
-		
-		int32 IndexToInsert =  IndexToSplit + 1;
-		Inventory.Insert(NewStack, IndexToInsert);
-
-		UpdateInventorySlot(EInventoryUpdateType::Insert, IndexToSplit, IndexToInsert);
-	}
-}
-
-void UInventoryComponent::SwapItemSlot(int32 DraggedIndex, int32 DestinationIndex)
-{
-	if (Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex))
-	{
-		if (Inventory[DraggedIndex].ItemNumericData.IsStackable && Inventory[DestinationIndex].ItemNumericData.IsStackable)
-		{
-			StackOnSwap(DraggedIndex, DestinationIndex);
-		}
-		else
-		{
-			Inventory.Swap(DraggedIndex, DestinationIndex);
-			UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+			if (DraggedSlot.ItemNumericData.Quantity <= 0)
+			{
+				Inventory.RemoveAt(DraggedIndex);
+				UpdateInventorySlot(EInventoryUpdateType::Remove, DraggedIndex);
+			}
+			UpdateInventorySlot(EInventoryUpdateType::Swap, DestinationIndex, DraggedIndex);
 		}
 	}
 }
 
-void UInventoryComponent::RemoveItem(int32 Index)
-{
-	if (Inventory.IsValidIndex(Index))
-	{
-		Inventory.RemoveAt(Index);
-		UpdateInventorySlot(EInventoryUpdateType::Remove, Index);
-	}
-}
 
 #pragma endregion
 
@@ -235,6 +232,7 @@ void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, I
 		EInventoryUpdateType::Swap:
 		UpdateOnSwap(IndexesToUpdate);
 		break;
+		
 	}
 	
 	InventoryHUD->UpdateIndexes();

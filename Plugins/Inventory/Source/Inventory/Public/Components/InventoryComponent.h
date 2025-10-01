@@ -6,7 +6,7 @@ enum class EInventoryUpdateType : uint8
 	Create		UMETA(DisplayName = "Add"),
 	Insert  UMETA(DisplayName = "Insert"),
 	Remove  UMETA(DisplayName = "Remove"),
-	Swap    UMETA(DisplayName = "Swap")
+	Swap    UMETA(DisplayName = "Swap"),
 };
 
 #include "CoreMinimal.h"
@@ -69,15 +69,11 @@ public:
 
 	void AddItem(FName RowName, int32 Quantity);
 	
-	void SplitStack (int32 IndexToSplit, int32 QuantityToSplit);
+	void SplitItem(int32 IndexToSplit, int32 QuantityToSplit);
 
 	void RemoveItem(int32 Index);
 	
-	template<typename... Indexes>
-	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
-	
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void SwapItemSlot(int32 SourceIndex, int32 DestinationIndex);
+	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
 
 	virtual UObject* GetItemMesh_Implementation (FName RowName) override;
 	
@@ -103,7 +99,12 @@ private:
 	void CreateHUDWidget();
 
 	void CreateDefaults();
+	
+	template<typename... Indexes>
+	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
 
+	void UpdateExisting (const TArray<int32>& IndexesToUpdate);
+	
 	void UpdateOnSwap (const TArray<int32>& IndexesToUpdate);
 
 	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);

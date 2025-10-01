@@ -41,7 +41,7 @@ void UInv_SplitStack::OnButtonClicked()
 	{
 		if (SlotIndex >= 0)
 		{
-			PlayerInventory->SplitStack(SlotIndex, ValueToSplit);
+			PlayerInventory->SplitItem(SlotIndex, ValueToSplit);
 			RemoveFromParent();
 		}
 	}

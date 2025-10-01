@@ -61,7 +61,7 @@ bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 
 	if (PlayerInventory && SlotIndex != DraggedIndex)
 	{
-		PlayerInventory->SwapItemSlot(DraggedIndex, SlotIndex);
+		PlayerInventory->SwapItem(DraggedIndex, SlotIndex);
 	}
 	return true;
 }

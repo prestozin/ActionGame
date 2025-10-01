@@ -35,8 +35,8 @@ void UInventoryHUD::UpdateExistingSlot(TArray<int32> IndexesToUpdate)
 	{ 
 		int32 IndexToUpdate = Index;
 
-		if (!PlayerInventory || !PlayerInventory->Inventory.IsValidIndex(IndexToUpdate)) return; 
-		if (!InventorySlots.IsValidIndex(IndexToUpdate)) return;
+		if (!PlayerInventory) return; 
+		if (!PlayerInventory->Inventory.IsValidIndex(IndexToUpdate) || !InventorySlots.IsValidIndex(IndexToUpdate)) continue;
 		
 		UInv_ItemSlot* SlotToUpdate = InventorySlots[IndexToUpdate];
 		
@@ -60,34 +60,46 @@ void UInventoryHUD::UpdateExistingSlot(TArray<int32> IndexesToUpdate)
 	} 
 }
 
-
-
 void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 {
 	for (int32 Index : IndexesToUpdate)
 	{
+		InventorySlots.SetNum(PlayerInventory->Inventory.Num());
+		
 		int32 IndexToCreate = Index;
-		if (!PlayerInventory || !PlayerInventory->Inventory.IsValidIndex(IndexToCreate)) return;
 		
 		if (PlayerInventory->Inventory.IsValidIndex(IndexToCreate))
 		{
-			const FItemData& Item = PlayerInventory->Inventory[IndexToCreate];
-			UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();;
-			int32 Quantity = Item.ItemNumericData.Quantity;;
-        				       
-			UInv_ItemSlot* NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
-			UInv_OnDragSlot* OnDragWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
-			
-			if (NewSlot && OnDragWidget)
+			if (InventorySlots.IsValidIndex(IndexToCreate) && InventorySlots[IndexToCreate] != nullptr)
 			{
-				NewSlot->PlayerInventory = PlayerInventory;
-				NewSlot->OnDragVisual = OnDragWidget;
-				NewSlot->SetSlotInfo(Icon, Quantity, IndexToCreate);
-				
-				InventorySlots.Add(NewSlot);
-				
-				InventorySlots[IndexToCreate] = NewSlot;
-				InventoryWrapBox->AddChildToWrapBox(NewSlot);
+				UpdateExistingSlot({ IndexToCreate });
+			} 
+			else
+			{
+				const FItemData& Item = PlayerInventory->Inventory[IndexToCreate];
+				UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();;
+				int32 Quantity = Item.ItemNumericData.Quantity;;
+                        				       
+				UInv_ItemSlot* NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
+				UInv_OnDragSlot* OnDragWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
+                			
+				if (NewSlot && OnDragWidget)
+				{
+					NewSlot->PlayerInventory = PlayerInventory;
+					NewSlot->OnDragVisual = OnDragWidget;
+					NewSlot->SetSlotInfo(Icon, Quantity, IndexToCreate);
+                				
+					InventorySlots[IndexToCreate] = NewSlot;
+                
+					if (InventoryWrapBox->GetChildrenCount() >= IndexToCreate)
+					{
+						InventoryWrapBox->InsertChildAt(IndexToCreate, NewSlot);
+					}
+					else
+					{
+						InventoryWrapBox->AddChild(NewSlot);
+					}
+				}
 			}
 		}
 	}
@@ -95,10 +107,13 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 
 void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
 {
-	for (int32 Index = IndexesToUpdate.Num() - 1; Index >= 0; Index--)
-	{
-		int32 IndexToRemove = IndexesToUpdate[Index];
+	if (IndexesToUpdate.Num() <= 0) return;
 
+	//reorder in ascending order to make shure that the biggest index will always be removed first
+	IndexesToUpdate.Sort([](int32 A, int32 B) { return A > B; }); 
+	
+	for (int32 IndexToRemove : IndexesToUpdate)
+	{
 		if (InventorySlots.IsValidIndex(IndexToRemove))
 		{
 			UInv_ItemSlot* SlotToRemove = InventorySlots[IndexToRemove];
@@ -106,7 +121,7 @@ void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
 			if (SlotToRemove && InventoryWrapBox)
 			{
 				InventoryWrapBox->RemoveChild(SlotToRemove);
-				InventorySlots.Remove(SlotToRemove);
+				InventorySlots.RemoveAt(IndexToRemove);
 				SlotToRemove->RemoveFromParent();
 			}
 		}
@@ -115,7 +130,7 @@ void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
 
 void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 {
-	if (!PlayerInventory || IndexesToUpdate.Num() < 2) return;
+	if (IndexesToUpdate.Num() < 2) return;
 
 	int32 ExistingIndex = FMath::Min(IndexesToUpdate[0], IndexesToUpdate[1]);
 	int32 IndexToInsert = FMath::Max(IndexesToUpdate[0], IndexesToUpdate[1]);
