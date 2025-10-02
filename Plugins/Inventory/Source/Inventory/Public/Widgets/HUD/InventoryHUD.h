@@ -1,5 +1,6 @@
 #pragma once
 
+
 UENUM()
 enum class EHUDUpdates : uint8
 {
@@ -16,7 +17,7 @@ enum class EHUDUpdates : uint8
 #include "Interfaces/Inv_InteractionInterface.h"
 #include "InventoryHUD.generated.h"
 
-class UWrapBox;
+class UGridPanel;
 class UInventoryComponent;
 class UInv_InteractWidget;
 class UInv_ItemSlot;
@@ -46,8 +47,11 @@ private:
 	TSubclassOf<UInv_OnDragSlot> DragSlotClass;
 	
 	UPROPERTY(meta = (BindWidget))
-	UWrapBox* InventoryWrapBox;
-			
+	UGridPanel* InventoryGridPanel;
+
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	int32 SlotsPerLine = 5;
+	
 	// ================================
 	// =       FUNCTIONS           =
 	// ================================
@@ -59,6 +63,8 @@ private:
 	void RemoveSlot(TArray<int32> IndexesToUpdate);
 
 	void UpdateExistingSlot(TArray<int32> IndexesToUpdate);
+
+	FIntPoint GetGridPosition(int32 Index) const;
 	
 public:
 	
