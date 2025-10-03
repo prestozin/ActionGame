@@ -9,14 +9,16 @@
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DragDrop/Inv_OnDragSlot.h"
 #include "Widgets/SplitStack//Inv_SplitStack.h"
+#include "Widgets/Item/Inspection/Inv_ItemInspection.h"
 
 void UInv_ItemSlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 }
 
-void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+
+#pragma region MouseActions
+void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
 	UInv_DragDrop* DragDrop = NewObject<UInv_DragDrop>();
 	
@@ -36,13 +38,12 @@ FReply UInv_ItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 	{
 		if (InMouseEvent.IsControlDown())
 		{
-			SplitStackWidget = CreateWidget<UInv_SplitStack>(GetWorld(), SplitStackClass);
+			UInv_SplitStack* SplitStackWidget = CreateWidget<UInv_SplitStack>(GetWorld(), SplitStackClass);
 			if (SplitStackWidget)
 			{
 				SplitStackWidget->SlotIndex = SlotIndex;
 				SplitStackWidget->PlayerInventory = PlayerInventory;
 				SplitStackWidget->AddToViewport();
-				
 			}
 			return FReply::Handled();
 		}
@@ -50,8 +51,32 @@ FReply UInv_ItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-                                 UDragDropOperation* InOperation)
+void UInv_ItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	if (!ItemInspector) return;
+	
+	FItemData& ItemInfo = PlayerInventory->Inventory[SlotIndex];
+
+	UTexture2D* ItemImage = ItemInfo.ItemAssetData.Icon.LoadSynchronous();
+	FText ItemName = ItemInfo.ItemTextData.Name;
+	FText ItemDescription = ItemInfo.ItemTextData.Description;
+	FText ItemRarity = EnumToText(ItemInfo.ItemRarity);
+	FText ItemType = EnumToText(ItemInfo.ItemType);
+	
+	ItemInspector->SetInspectionInfos(ItemImage, ItemName, ItemType, ItemRarity, ItemDescription);
+	ItemInspector->SetVisibility(ESlateVisibility::Visible);
+    	
+}
+
+void UInv_ItemSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	if (!ItemInspector) return;
+	ItemInspector->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	if (!InOperation) return false;
 	
@@ -66,7 +91,7 @@ bool UInv_ItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEve
 	return true;
 }
 
-
+#pragma endregion
 
 void UInv_ItemSlot::SetSlotInfo(UTexture2D* Icon, int32 Quantity, int32 Index)
 {

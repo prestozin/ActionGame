@@ -46,8 +46,7 @@ public:
 
 
 	virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
-	
-	
+
 protected:
 
 	virtual void BeginPlay() override;

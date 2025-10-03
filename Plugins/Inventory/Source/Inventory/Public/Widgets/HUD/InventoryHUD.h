@@ -22,7 +22,7 @@ class UInventoryComponent;
 class UInv_InteractWidget;
 class UInv_ItemSlot;
 class UInv_OnDragSlot;
-
+class UInv_ItemInspection;
 /**
  * 
  */
@@ -51,6 +51,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 SlotsPerLine = 5;
+
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UInv_ItemInspection> ItemInspectionClass;
+
+	UPROPERTY()
+	UInv_ItemInspection* ItemInspector;
 	
 	// ================================
 	// =       FUNCTIONS           =
@@ -65,6 +71,8 @@ private:
 	void UpdateExistingSlot(TArray<int32> IndexesToUpdate);
 
 	FIntPoint GetGridPosition(int32 Index) const;
+	
+	void CreateItemInspector();
 	
 public:
 	
@@ -121,7 +129,6 @@ public:
 	
 protected:
 	
-	virtual void NativeConstruct() override;
-	
+	virtual void NativeConstruct() override; 
 	
 };

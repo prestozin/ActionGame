@@ -12,6 +12,7 @@ class UInventoryComponent;
 class UTextBlock;
 class UImage;
 class UInv_OnDragSlot;
+class UInv_ItemInspection;
 
 
 /**
@@ -42,20 +43,32 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* ImageIcon;
-
-	UInv_SplitStack* SplitStackWidget;
-
+	
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TSubclassOf<UInv_SplitStack> SplitStackClass;
-	
+
+	//convert enum to ftext
+	template<typename Enums>
+	FText EnumToText(Enums EnumValue)
+	{
+		if (const UEnum* EnumPtr = StaticEnum<Enums>())
+		{
+			return EnumPtr->GetDisplayNameTextByValue((int64)EnumValue);
+		}
+		return FText::FromString("Invalid");
+	}
+
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
 	
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent);
 	
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+	
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
 public:
 	
@@ -71,21 +84,23 @@ public:
 
 	UPROPERTY()
 	UInv_OnDragSlot* OnDragVisual;
-	
+
+	UPROPERTY()
+	UInv_ItemInspection* ItemInspector;
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
 	
-
 	UFUNCTION()
 	void SetSlotInfo (UTexture2D* Icon, int32 Quantity, int32 Index);
 	
-
 	void SetSlotIndex (int32 Index);
 
-	
+
 protected:
 
 	virtual void NativeConstruct() override;
+
+	
 	
 };

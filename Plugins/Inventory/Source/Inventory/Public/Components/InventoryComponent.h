@@ -103,8 +103,6 @@ private:
 	template<typename... Indexes>
 	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
 
-	void UpdateExisting (const TArray<int32>& IndexesToUpdate);
-	
 	void UpdateOnSwap (const TArray<int32>& IndexesToUpdate);
 
 	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);

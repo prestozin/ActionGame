@@ -7,14 +7,13 @@
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Widgets/DragDrop/Inv_OnDragSlot.h"
+#include "Widgets/Item/Inspection/Inv_ItemInspection.h"
 
 void UInventoryHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	//start with inventory empty
+	CreateItemInspector();
 	InventorySlots.Empty();	
-	
 }
 
 void UInventoryHUD::UpdateIndexes()
@@ -82,6 +81,7 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 				
 			NewSlot->PlayerInventory = PlayerInventory;
 			NewSlot->OnDragVisual = OnDragWidget;
+			if (ItemInspector) { NewSlot->ItemInspector = ItemInspector; }
 			NewSlot->SetSlotInfo(Icon, Quantity, IndexToCreate);
                 				
 			InventorySlots[IndexToCreate] = NewSlot;
@@ -114,6 +114,7 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	
 	SlotToInsert->PlayerInventory = PlayerInventory;
 	SlotToInsert->OnDragVisual = OnDragWidget;
+	if (ItemInspector) { SlotToInsert->ItemInspector = ItemInspector; }
 	SlotToInsert->SetSlotInfo(Icon, Quantity, IndexToInsert);
 			
 	InventorySlots.Insert(SlotToInsert, IndexToInsert);
@@ -193,6 +194,13 @@ FIntPoint UInventoryHUD::GetGridPosition(int32 Index) const
 	int32 Col = Index % SlotsPerLine;   
 	int32 Row = Index / SlotsPerLine;   
 	return FIntPoint(Col, Row);
+}
+
+void UInventoryHUD::CreateItemInspector()
+{
+	ItemInspector = CreateWidget<UInv_ItemInspection>(GetWorld(), ItemInspectionClass);
+	ItemInspector->AddToViewport();
+	ItemInspector->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 
