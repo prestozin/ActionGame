@@ -6,10 +6,6 @@
 #include "Blueprint/DragDropOperation.h"
 #include "Inv_DragDrop.generated.h"
 
-class UInventoryComponent;
-/**
- * 
- */
 UCLASS()
 class INVENTORY_API UInv_DragDrop : public UDragDropOperation
 {
@@ -17,11 +13,6 @@ class INVENTORY_API UInv_DragDrop : public UDragDropOperation
 	
 public:
 
-	UPROPERTY(BlueprintReadWrite)
-	int32 DraggedItemIndex;
-
-
-protected:
-
-	
+	UPROPERTY()
+	int32 DraggedIndex = -1;
 };

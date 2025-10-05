@@ -3,7 +3,6 @@
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
-#include "Widgets/Interaction/Inv_InteractWidget.h"
 
 #pragma region StartSection
 
@@ -23,19 +22,7 @@ void UInventoryComponent::BeginPlay()
 
 void UInventoryComponent::CreateDefaults()
 {
-		//Get owning controller
     	OwningController = GetWorld()->GetFirstPlayerController();
-	
-    	//create interact widget
-    	InteractWidget = CreateWidget<UInv_InteractWidget>(GetWorld(), InteractWidgetClass);
-
-		//only add to viewport if widget is valid
-    	if (InteractWidget)
-    	{
-    		InteractWidget->AddToViewport();
-    	}
-
-		//create hud widget
 		CreateHUDWidget();
 }
 
@@ -44,13 +31,12 @@ void UInventoryComponent::CreateHUDWidget()
 	if (OwningController.IsValid())
 	{
 		InventoryHUD = CreateWidget<UInventoryHUD>(OwningController.Get(),HUDWidgetClass);
-        
-		if (InventoryHUD)
-		{
-			InventoryHUD->PlayerInventory = this;
-			InventoryHUD->AddToViewport();
-			InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		
+		if (!InventoryHUD) return;
+		
+		InventoryHUD->PlayerInventory = this;
+		InventoryHUD->AddToViewport();
+		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -112,7 +98,9 @@ void UInventoryComponent::SplitItem(int32 IndexToSplit, int32 QuantityToSplit)
 
 void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 {
+	
 	if (!Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex)) return;
+	if (DraggedIndex == DestinationIndex) return;
 	
 	if (Inventory[DraggedIndex].ItemNumericData.IsStackable && Inventory[DestinationIndex].ItemNumericData.IsStackable)
 	{
@@ -285,35 +273,39 @@ void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
 
 #pragma endregion
 
-const void UInventoryComponent::SpawnItem(const FItemData& Item)
+const void UInventoryComponent::SpawnItem(int32 DraggedIndex)
 {	
 	if (UWorld* World = GetWorld())
 	{
+		const FItemData& ItemToSpawn = Inventory[DraggedIndex];
+
+		if (ItemToSpawn.ID.IsNone()) return;
+		
 		FVector SpawnLocation = GetOwner()->GetActorLocation();
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		SpawnParameters.Owner = GetOwner();
 
-		if (!Item.ItemClass) return;
+		if (!ItemToSpawn.ItemClass) return;
 		
-		AInv_MasterItem* SpawnedItem = World->SpawnActor<AInv_MasterItem>(Item.ItemClass, SpawnLocation, SpawnRotation, SpawnParameters);
+		AInv_MasterItem* SpawnedItem = World->SpawnActor<AInv_MasterItem>(ItemToSpawn.ItemClass, SpawnLocation, SpawnRotation, SpawnParameters);
 		
 		if (!SpawnedItem) return;
 			
-		SpawnedItem->ID = Item.ID;
-		SpawnedItem->Quantity = Item.ItemNumericData.Quantity;
-		UStaticMesh* StaticMesh = Item.ItemAssetData.StaticMesh.LoadSynchronous();
-		USkeletalMesh* SkeletalMesh = Item.ItemAssetData.SkeletalMesh.LoadSynchronous();
+		SpawnedItem->ID = ItemToSpawn.ID;
+		SpawnedItem->Quantity = ItemToSpawn.ItemNumericData.Quantity;
+		UStaticMesh* StaticMesh = ItemToSpawn.ItemAssetData.StaticMesh.LoadSynchronous();
+		USkeletalMesh* SkeletalMesh = ItemToSpawn.ItemAssetData.SkeletalMesh.LoadSynchronous();
 				
 		if (StaticMesh)
 		{
-			SpawnedItem->ItemStaticMesh->SetStaticMesh(Item.ItemAssetData.StaticMesh.LoadSynchronous());
+			SpawnedItem->ItemStaticMesh->SetStaticMesh(ItemToSpawn.ItemAssetData.StaticMesh.LoadSynchronous());
 		}
 
 		else if (SkeletalMesh)
 		{
-			SpawnedItem->ItemSkeletalMesh->SetSkeletalMesh(Item.ItemAssetData.SkeletalMesh.LoadSynchronous());
+			SpawnedItem->ItemSkeletalMesh->SetSkeletalMesh(ItemToSpawn.ItemAssetData.SkeletalMesh.LoadSynchronous());
 		}
 	}
 }

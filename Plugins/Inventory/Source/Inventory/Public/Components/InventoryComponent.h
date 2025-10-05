@@ -18,7 +18,7 @@ enum class EInventoryUpdateType : uint8
 class UUserWidget;
 class UInventoryHUD;
 class UInv_MasterItem;
-class UInv_InteractWidget;
+
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -55,14 +55,7 @@ public:
 	
 	UPROPERTY()
 	TObjectPtr<UInventoryHUD> InventoryHUD;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
-	TSubclassOf<UInv_InteractWidget> InteractWidgetClass;
-
-	UPROPERTY()
-	UInv_InteractWidget* InteractWidget = nullptr;
-
-	
+		
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
@@ -77,7 +70,7 @@ public:
 
 	virtual UObject* GetItemMesh_Implementation (FName RowName) override;
 	
-	const void SpawnItem(const FItemData& Item);
+	const void SpawnItem(int32 DraggedIndex);
 	
 private:
 	

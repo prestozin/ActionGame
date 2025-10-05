@@ -6,11 +6,12 @@
 #include "Blueprint/UserWidget.h"
 #include "Inv_DropZone.generated.h"
 
-class UInventoryComponent;
+#pragma region Delegates
 
-/**
- * 
- */
+DECLARE_DELEGATE_TwoParams(FOnDropZoneItemDropped, UDragDropOperation*, int32);
+
+#pragma endregion
+
 UCLASS()
 
 
@@ -23,9 +24,13 @@ private:
 
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
-	UPROPERTY()
-	UInventoryComponent* PlayerInventory;
-
+	FOnDropZoneItemDropped OnItemDropped;
+	int32 NullIndex = INDEX_NONE;  //Only to use one function from inventory hud for 2 delegates (dropzone and item slot)
+	
+public:
+	
+	FOnDropZoneItemDropped& GetOnItemDropped() { return OnItemDropped; }
+	
 protected:
 
 	virtual void NativeConstruct() override;

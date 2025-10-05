@@ -17,7 +17,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UInventoryHUD;
-class UInv_InteractWidget;
+class UInv_ItemInteractor;
 
 #pragma endregion
 
@@ -103,7 +103,7 @@ private:
 	UInventoryHUD* InventoryHUD;
 
 	UPROPERTY()
-	UInv_InteractWidget* InteractWidget;
+	UInv_ItemInteractor* InteractWidget;
 	
 	// ================================
 	// =        FUNCTIONS            =

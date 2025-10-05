@@ -6,14 +6,19 @@
 #include "Blueprint/UserWidget.h"
 #include "Inv_SplitStack.generated.h"
 
-class UInventoryComponent;
+#pragma region Classes
+
 class USlider;
 class USpinBox;
 class UButton;
 
-/**
- * 
- */
+#pragma endregion
+
+#pragma region Delegates
+
+DECLARE_DELEGATE_TwoParams(FOnSplitConfirmed, int32 /*SlotIndex*/, int32 /*Quantity*/);
+
+#pragma endregion
 
 
 UCLASS()
@@ -40,11 +45,10 @@ private:
 
 	UFUNCTION()
 	void OnSpinBoxValueChanged(float Value);
+
+	void SetSplitSetup ();
 	
 public:
-	
-	UPROPERTY()
-	UInventoryComponent* PlayerInventory;
 	
 	UPROPERTY()
 	int32 MaxStack;
@@ -54,6 +58,8 @@ public:
 	
 	UPROPERTY()
 	int32 ValueToSplit;
+
+	FOnSplitConfirmed OnSplitConfirmed;
 
 protected:
 

@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Widgets/Item/Inspection/Inv_ItemInspection.h"
+#include "Widgets/Item/Inspection/Inv_ItemInspector.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
-#include "Components/TextBlock.h"
 
 
-void UInv_ItemInspection::SetInspectionInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription)
+
+void UInv_ItemInspector::SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription)
 {
 	if (Image)
 	{
@@ -37,4 +37,9 @@ void UInv_ItemInspection::SetInspectionInfos(UTexture2D* Image, const FText& Ite
 	{
 		TextItemDescription->SetText(ItemDescription);
 	}
+}
+
+void UInv_ItemInspector::HideInspector()
+{
+	SetVisibility(ESlateVisibility::Collapsed);
 }

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Inv_ItemInspection.generated.h"
+#include "Inv_ItemInspector.generated.h"
 
 class UImage;
 class UTextBlock;
 
 UCLASS()
-class INVENTORY_API UInv_ItemInspection : public UUserWidget
+class INVENTORY_API UInv_ItemInspector : public UUserWidget
 {
 	GENERATED_BODY()
 
@@ -21,7 +21,7 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextItemType;
-
+	
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextItemRarity;
 
@@ -33,6 +33,7 @@ private:
 
 public:
 
-	void SetInspectionInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription);
-	
+	void SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription);
+
+	void HideInspector();
 };

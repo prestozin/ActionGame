@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Inv_InteractWidget.generated.h"
+#include "Inv_ItemInteractor.generated.h"
 
 class UOverlay;
 class UTextBlock;
@@ -12,7 +12,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class INVENTORY_API UInv_InteractWidget : public UUserWidget
+class INVENTORY_API UInv_ItemInteractor : public UUserWidget
 {
 	GENERATED_BODY()
 private:

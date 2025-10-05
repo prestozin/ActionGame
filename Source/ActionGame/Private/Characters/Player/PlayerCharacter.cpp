@@ -13,7 +13,7 @@
 #include "GameFramework/SpringArmComponent.h"
 
 #include "Widgets/HUD/InventoryHUD.h"
-#include "Widgets/Interaction/Inv_InteractWidget.h"
+#include "Widgets/Interaction/Inv_ItemInteractor.h"
 	
 
 // Sets default values
@@ -47,11 +47,14 @@ void APlayerCharacter::BeginPlay()
 
 	//get player controller
 	PlayerController = Cast<APlayerController>(GetController());
-
 	
 	//widgets
-	InteractWidget = PlayerInventory->InteractWidget;
 	InventoryHUD = PlayerInventory->InventoryHUD;
+
+	if (InventoryHUD->GetInteractWidget())
+	{
+		InteractWidget = InventoryHUD->GetInteractWidget();
+	}
 	
 	//Add input mapping context
 	if (PlayerController)
@@ -195,7 +198,6 @@ void APlayerCharacter::Interact()
 
 void APlayerCharacter::OpenInventory() 
 {
-	
 	if (InventoryHUD)
 	{
 		bool bInventoryOpen = InventoryHUD->ToggleHUD();
@@ -210,7 +212,4 @@ void APlayerCharacter::OpenInventory()
 			bUseControllerRotationYaw = true;
 		}
 	}
-	
-	
-	
 }

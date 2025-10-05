@@ -5,18 +5,18 @@
 #include "Components/Slider.h"
 #include "Components/SpinBox.h"
 #include "Components/Button.h"
-#include "Components/InventoryComponent.h"
+
 
 
 void UInv_SplitStack::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (PlayerInventory)
-	{
-		MaxStack = PlayerInventory->Inventory[SlotIndex].ItemNumericData.Quantity;
-	}
 	
+	SetSplitSetup();
+}
+
+void UInv_SplitStack::SetSplitSetup()
+{
 	if (QuantitySlider)
 	{
 		QuantitySlider->OnValueChanged.AddDynamic(this, &UInv_SplitStack::OnSliderValueChanged);
@@ -37,33 +37,27 @@ void UInv_SplitStack::NativeConstruct()
 
 void UInv_SplitStack::OnButtonClicked()
 {
-	if (PlayerInventory)
-	{
-		if (SlotIndex >= 0)
-		{
-			PlayerInventory->SplitItem(SlotIndex, ValueToSplit);
-			RemoveFromParent();
-		}
-	}
+	OnSplitConfirmed.ExecuteIfBound(SlotIndex, ValueToSplit);
+	RemoveFromParent();
 }
 
 void UInv_SplitStack::OnSliderValueChanged(float Value)
 {
-	if (QuantitySpinBox->GetValue() != Value)
-	{
-		QuantitySpinBox->SetValue(Value);
-		ValueToSplit = Value;
-	}
-	}
+	if (!(QuantitySpinBox->GetValue() != Value)) return;
+	
+	QuantitySpinBox->SetValue(Value);
+	ValueToSplit = Value;
+}
 
 void UInv_SplitStack::OnSpinBoxValueChanged(float Value)
 {
-	if (QuantitySlider->GetValue() != Value)
-	{
-		QuantitySlider->SetValue(Value);
-		ValueToSplit = Value;
-	}
-	}
+	if (!(QuantitySlider->GetValue() != Value)) return;
+	
+	QuantitySlider->SetValue(Value);
+	ValueToSplit = Value;
+}
+
+
 
 
 
