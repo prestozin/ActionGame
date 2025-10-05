@@ -15,6 +15,7 @@ UCLASS()
 class INVENTORY_API UInv_ItemInteractor : public UUserWidget
 {
 	GENERATED_BODY()
+	
 private:
 	
 	// ================================
@@ -33,7 +34,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
 	void ShowInteractMessage (const FString& InteractMessage);
 
-	UFUNCTION(	BlueprintImplementableEvent, Category = "Inventory")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")
 	void HideInteractMessage ();
 
 	FString GetPickupMessage() const {return Message;}

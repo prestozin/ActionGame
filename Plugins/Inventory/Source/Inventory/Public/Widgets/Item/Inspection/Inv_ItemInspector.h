@@ -33,7 +33,7 @@ private:
 
 public:
 
-	void SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription);
+	void SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const;
 
 	void HideInspector();
 };

@@ -15,14 +15,36 @@ class INVENTORY_API AInv_MasterItem : public AActor, public IInv_InteractionInte
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	
- AInv_MasterItem();
+	AInv_MasterItem();
+	
+	virtual void BeginPlay() override;
+	
+private:
+
+	// ================================
+	// =        PROPERTIES            =
+	// ===============================
+
+	UPROPERTY(EditDefaultsOnly, Category = "Item Data")
+	UDataTable* DataTable;
+	
+	UPROPERTY(EditAnywhere)
+	USceneComponent* Root;
+
+	// ================================
+	// =        FUNCTIONS           =
+	// ===============================
+	
+	void SetItemMesh() const;
+	
+public:
+
 	
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
-	
 	
 	UPROPERTY (EditAnywhere, Category = "Item Data", meta = (UIMin = 1, UIMax = 100))
 	int32 Quantity;
@@ -35,31 +57,11 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	USkeletalMeshComponent* ItemSkeletalMesh;
-
-	UPROPERTY(EditAnywhere)
-	USceneComponent* Root;
-
 	
 	// ================================
 	// =        FUNCTIONS             =
 	// ================================
-
-
+	
 	virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
-
-protected:
-
-	virtual void BeginPlay() override;
-	
-private:
-
-	// ================================
-	// =        PROPERTIES            =
-	// ================================
-	
-	
-	
-
-	void SetItemMesh() const;
 	
 };

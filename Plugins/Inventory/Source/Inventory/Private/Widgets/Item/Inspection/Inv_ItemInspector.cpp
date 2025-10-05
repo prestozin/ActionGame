@@ -6,7 +6,7 @@
 
 
 
-void UInv_ItemInspector::SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription)
+void UInv_ItemInspector::SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const
 {
 	if (Image)
 	{
@@ -41,5 +41,6 @@ void UInv_ItemInspector::SetInspectorInfos(UTexture2D* Image, const FText& ItemN
 
 void UInv_ItemInspector::HideInspector()
 {
+	if (!this) return;
 	SetVisibility(ESlateVisibility::Collapsed);
 }

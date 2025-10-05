@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
-#include "Items/Inv_MasterItem.h"
 #include "Inv_ItemDataStructs.generated.h"
 
 //ENUMS
@@ -97,8 +96,5 @@ struct FItemData : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	FItemAssetData ItemAssetData;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<AInv_MasterItem> ItemClass;
 	
 };

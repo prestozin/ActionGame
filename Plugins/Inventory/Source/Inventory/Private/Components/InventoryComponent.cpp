@@ -3,6 +3,7 @@
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
+#include "Kismet/GameplayStatics.h"
 
 #pragma region StartSection
 
@@ -273,63 +274,34 @@ void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
 
 #pragma endregion
 
-const void UInventoryComponent::SpawnItem(int32 DraggedIndex)
+void UInventoryComponent::SpawnItem(int32 DraggedIndex) const
 {	
-	if (UWorld* World = GetWorld())
-	{
-		const FItemData& ItemToSpawn = Inventory[DraggedIndex];
-
-		if (ItemToSpawn.ID.IsNone()) return;
-		
-		FVector SpawnLocation = GetOwner()->GetActorLocation();
-		FRotator SpawnRotation = FRotator::ZeroRotator;
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		SpawnParameters.Owner = GetOwner();
-
-		if (!ItemToSpawn.ItemClass) return;
-		
-		AInv_MasterItem* SpawnedItem = World->SpawnActor<AInv_MasterItem>(ItemToSpawn.ItemClass, SpawnLocation, SpawnRotation, SpawnParameters);
-		
-		if (!SpawnedItem) return;
-			
-		SpawnedItem->ID = ItemToSpawn.ID;
-		SpawnedItem->Quantity = ItemToSpawn.ItemNumericData.Quantity;
-		UStaticMesh* StaticMesh = ItemToSpawn.ItemAssetData.StaticMesh.LoadSynchronous();
-		USkeletalMesh* SkeletalMesh = ItemToSpawn.ItemAssetData.SkeletalMesh.LoadSynchronous();
-				
-		if (StaticMesh)
-		{
-			SpawnedItem->ItemStaticMesh->SetStaticMesh(ItemToSpawn.ItemAssetData.StaticMesh.LoadSynchronous());
-		}
-
-		else if (SkeletalMesh)
-		{
-			SpawnedItem->ItemSkeletalMesh->SetSkeletalMesh(ItemToSpawn.ItemAssetData.SkeletalMesh.LoadSynchronous());
-		}
-	}
-}
-
-
-UObject* UInventoryComponent::GetItemMesh_Implementation(FName RowName)
-{
-	if (!DataTable)  return nullptr;
+	UWorld* World = GetWorld();
+	if (!World || !ItemClass) return;
 	
-	FItemData* Item = DataTable->FindRow<FItemData>(RowName, TEXT("GetItemFromDataTable"));
+	const FItemData& ItemToSpawn = Inventory[DraggedIndex];
+	
+	if (ItemToSpawn.ID.IsNone()) return;
+		
+	FVector SpawnLocation = GetOwner()->GetActorLocation();
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	SpawnParameters.Owner = GetOwner();
 
-	if (Item)
-	{
-		if (Item->ItemAssetData.StaticMesh.IsValid())
-		{
-			return Item->ItemAssetData.StaticMesh.LoadSynchronous();
-		}
-		if (Item->ItemAssetData.SkeletalMesh.IsValid())
-		{
-			return Item->ItemAssetData.SkeletalMesh.LoadSynchronous();
-		}
-	}
-	return nullptr;
+	//use deferred to configure the actor before spawn
+	AInv_MasterItem* SpawnedItem = World->SpawnActorDeferred<AInv_MasterItem>(
+	ItemClass.Get(), FTransform(SpawnRotation, SpawnLocation), nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		
+	if (!SpawnedItem) return;
+	SpawnedItem->ID = ItemToSpawn.ID;
+	SpawnedItem->Quantity = ItemToSpawn.ItemNumericData.Quantity;
+
+	UGameplayStatics::FinishSpawningActor(SpawnedItem, FTransform(SpawnRotation, SpawnLocation));
+		
+	UE_LOG(LogTemp, Warning, TEXT("Spawned item: %s at %s"), *SpawnedItem->GetName(), *SpawnedItem->GetActorLocation().ToString());
 }
+
 
 	
 

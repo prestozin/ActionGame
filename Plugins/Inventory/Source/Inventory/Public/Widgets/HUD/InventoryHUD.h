@@ -34,6 +34,10 @@ class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_InteractionI
 {
 	GENERATED_BODY()
 	
+protected:
+	
+	virtual void NativeConstruct() override;
+	
 private:
 
 	// ================================
@@ -58,22 +62,22 @@ private:
 
 #pragma region WidgetsClass
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "Interact Widget")
 	TSubclassOf<UInv_ItemInteractor> InteractWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "Item Slot Widget")
 	TSubclassOf<UInv_ItemSlot> ItemSlotClass;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Inventory")
+	UPROPERTY(EditDefaultsOnly, Category="Inventory", DisplayName = "DragSlot Widget")
 	TSubclassOf<UInv_OnDragSlot> DragSlotClass;
 
-	UPROPERTY(EditAnywhere, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "DragDrop Widget")
 	TSubclassOf<UInv_DragDrop> DragDropClass;
 	
-	UPROPERTY(EditAnywhere, Category = "Inventory")
-	TSubclassOf<UInv_ItemInspector> ItemInspectionClass;
+	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "Item Inspector Widget")
+	TSubclassOf<UInv_ItemInspector> ItemInspectorClass;
 	
-	UPROPERTY(EditAnywhere, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "SplitStack Widget")
 	TSubclassOf<UInv_SplitStack> SplitStackClass;
 	
 #pragma endregion
@@ -124,7 +128,7 @@ private:
 
 	void SetInspectorSetup(int32 ItemIndex);
 
-	void OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex);
+	void OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const;
 
 	void CreateItemInspectorWidget();
 
@@ -134,11 +138,11 @@ private:
 
 	void CreateDragDropSetup();
 
+	void SetSlotSetup (UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int32 Quantity, int32 Index);
+	
 	UDragDropOperation* CreateDragDropWidget(UInv_ItemSlot* ItemSlot);
 
 	UInv_ItemInspector* GetItemInspector() const { return ItemInspector; }
-
-
 
 public:
 	
@@ -162,6 +166,12 @@ public:
 	bool ToggleHUD();
 	
 	void UpdateIndexes();
+	
+	UInv_ItemInteractor* GetInteractWidget() const { return InteractWidget; }
+	
+	// ================================
+	// =        TEMPLATES           =
+	// ================================
 
 	template<typename... Indexes>
 	void UpdateSlots(EHUDUpdates UpdateType, Indexes... ModifiedIndexes)
@@ -169,8 +179,6 @@ public:
 		TArray<int32> IndexesToUpdate = { ModifiedIndexes... };
 
 		if (!PlayerInventory) return;
-		
-		UpdateIndexes();
 		
 		switch (UpdateType)
 		{
@@ -192,11 +200,5 @@ public:
 		}
 		UpdateIndexes();
 	}
-
-	UInv_ItemInteractor* GetInteractWidget() const { return InteractWidget; }
-	
-protected:
-	
-	virtual void NativeConstruct() override; 
 	
 };

@@ -15,10 +15,9 @@ enum class EInventoryUpdateType : uint8
 #include "Interfaces/Inv_InteractionInterface.h"
 #include "InventoryComponent.generated.h"
 
-class UUserWidget;
-class UInventoryHUD;
-class UInv_MasterItem;
 
+class UInventoryHUD;
+class AInv_MasterItem;
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -28,29 +27,27 @@ class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_In
 
 	
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
 	
+	virtual void BeginPlay() override;
+
+	UInventoryComponent(); //Constructor
 	
 public:
-	
-	UInventoryComponent(); //Constructor
-
 	
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
-
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "HUD Widget")
+	TSubclassOf<UInventoryHUD> HUDWidgetClass;
+	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	UDataTable* DataTable = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
-	TSubclassOf<UInventoryHUD> HUDWidgetClass;
-
-	UPROPERTY()
+	
+	UPROPERTY(EditAnywhere)
 	TSubclassOf<AInv_MasterItem> ItemClass;
 	
 	UPROPERTY()
@@ -67,10 +64,8 @@ public:
 	void RemoveItem(int32 Index);
 	
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
-
-	virtual UObject* GetItemMesh_Implementation (FName RowName) override;
 	
-	const void SpawnItem(int32 DraggedIndex);
+	void SpawnItem(int32 DraggedIndex) const;
 	
 private:
 	
@@ -78,24 +73,20 @@ private:
 	// =        PROPERTIES          =
 	// =================================
 	
-	
 	TWeakObjectPtr<APlayerController> OwningController;
 	
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
-	
-	void StackOnAdd(const FItemData* Item);
-
-	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
 
 	void CreateHUDWidget();
 
 	void CreateDefaults();
 	
-	template<typename... Indexes>
-	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
+	void StackOnAdd(const FItemData* Item);
 
+	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
+	
 	void UpdateOnSwap (const TArray<int32>& IndexesToUpdate);
 
 	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);
@@ -103,4 +94,11 @@ private:
 	void UpdateOnSplit(const TArray<int32>& IndexesToUpdate);
 
 	void UpdateOnRemove(const TArray<int32>& IndexesToUpdate);
+
+	// ================================
+	// =        TEMPLATES            =
+	// =================================
+
+	template<typename... Indexes>
+    	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
 };

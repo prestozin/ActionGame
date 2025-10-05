@@ -23,6 +23,7 @@ void UInventoryHUD::NativeConstruct()
 	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
 }
 
+#pragma region InventoryUpdates
 void UInventoryHUD::UpdateIndexes()
 {
 	if (!(InventorySlots.Num() > 0)) return;
@@ -85,12 +86,7 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
                 			
 			if (!NewSlot && !DragVisualWidget) return;
 
-			NewSlot->SetSlotInfo(Icon, Quantity, IndexToCreate);
-			NewSlot->OnItemDropped.BindUObject(this, &UInventoryHUD::OnItemDropped);
-			NewSlot->OnSplitStart.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
-			NewSlot->OnItemHovered.BindUObject(this, &UInventoryHUD::SetInspectorSetup);
-			NewSlot->OnHoverEnd.BindUObject(ItemInspector, &UInv_ItemInspector::HideInspector);
-			NewSlot->OnItemDragged.BindUObject(this, &UInventoryHUD::CreateDragDropWidget);
+			SetSlotSetup(NewSlot, Icon, Quantity, IndexToCreate);
                 				
 			InventorySlots[IndexToCreate] = NewSlot;
 			
@@ -119,12 +115,7 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 
 	if (!SlotToInsert || !DragVisualWidget || !InventoryGridPanel) return;
 
-	SlotToInsert->SetSlotInfo(Icon, Quantity, IndexToInsert);
-	SlotToInsert->OnItemDropped.BindUObject(this, &UInventoryHUD::OnItemDropped);
-	SlotToInsert->OnSplitStart.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
-	SlotToInsert->OnItemHovered.BindUObject(this, &UInventoryHUD::SetInspectorSetup);
-	SlotToInsert->OnHoverEnd.BindUObject(ItemInspector, &UInv_ItemInspector::HideInspector);
-	SlotToInsert->OnItemDragged.BindUObject(this, &UInventoryHUD::CreateDragDropWidget);
+	SetSlotSetup(SlotToInsert, Icon, Quantity, IndexToInsert);
 	
 	InventorySlots.Insert(SlotToInsert, IndexToInsert);
 	
@@ -183,30 +174,7 @@ void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
 	}
 }
 
-void UInventoryHUD::CreateDefaultWidgets()
-{
-	CreateInteractWidget();
-	CreateItemInspectorWidget();
-	CreateDragDropSetup();
-}
-
-void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
-{
-	FItemData& ItemInfo = PlayerInventory->Inventory[ItemIndex];
-
-	UTexture2D* ItemImage = ItemInfo.ItemAssetData.Icon.LoadSynchronous();
-	FText ItemName = ItemInfo.ItemTextData.Name;
-	FText ItemDescription = ItemInfo.ItemTextData.Description;
-	FText ItemRarity = EnumToText(ItemInfo.ItemRarity);
-	FText ItemType = EnumToText(ItemInfo.ItemType);
-
-	if (!ItemInspector) return;
-	
-	ItemInspector->SetInspectorInfos(ItemImage, ItemName, ItemDescription, ItemRarity, ItemType);
-	ItemInspector->SetVisibility(ESlateVisibility::Visible);
-}
-
-void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex)
+void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const
 {
 	if (!PlayerInventory || !InOperation) return;
 
@@ -224,6 +192,17 @@ void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 Destina
 			PlayerInventory->RemoveItem(DraggedIndex);
 		}
 	}
+}
+
+#pragma endregion
+
+#pragma region CreateWidgets
+
+void UInventoryHUD::CreateDefaultWidgets()
+{
+	CreateInteractWidget();
+	CreateItemInspectorWidget();
+	CreateDragDropSetup();
 }
 
 void UInventoryHUD::CreateInteractWidget()
@@ -257,14 +236,6 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 	SplitStackWidget->AddToViewport();
 }
 
-void UInventoryHUD::CreateDragDropSetup()
-{
-	if (!PlayerInventory || !DragSlotClass || !DragDropClass) return;
-	
-	DragVisualWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
-	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
-}
-
 UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 {
 	if (!PlayerInventory || !DragSlotClass || !DragDropWidget) return nullptr;
@@ -281,13 +252,50 @@ UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 
 void UInventoryHUD::CreateItemInspectorWidget()
 {
-	ItemInspector = CreateWidget<UInv_ItemInspector>(GetWorld(), ItemInspectionClass);
+	ItemInspector = CreateWidget<UInv_ItemInspector>(GetWorld(), ItemInspectorClass);
 	
 	if (!ItemInspector) return;
 	
 	ItemInspector->AddToViewport();
 	ItemInspector->SetVisibility(ESlateVisibility::Collapsed);
 }
+
+void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
+{
+	FItemData& ItemInfo = PlayerInventory->Inventory[ItemIndex];
+
+	UTexture2D* ItemImage = ItemInfo.ItemAssetData.Icon.LoadSynchronous();
+	FText ItemName = ItemInfo.ItemTextData.Name;
+	FText ItemDescription = ItemInfo.ItemTextData.Description;
+	FText ItemRarity = EnumToText(ItemInfo.ItemRarity);
+	FText ItemType = EnumToText(ItemInfo.ItemType);
+
+	if (!ItemInspector) return;
+	
+	ItemInspector->SetInspectorInfos(ItemImage, ItemName, ItemDescription, ItemRarity, ItemType);
+	ItemInspector->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UInventoryHUD::CreateDragDropSetup()
+{
+	if (!PlayerInventory || !DragSlotClass || !DragDropClass) return;
+	
+	DragVisualWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
+	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
+}
+
+void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int32 Quantity, int32 Index)
+{
+	if (!ItemSlot) return;
+	ItemSlot->SetSlotInfo(Icon, Quantity, Index);
+	ItemSlot->OnItemDropped.BindUObject(this, &UInventoryHUD::OnItemDropped);
+	ItemSlot->OnSplitStart.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
+	ItemSlot->OnItemHovered.BindUObject(this, &UInventoryHUD::SetInspectorSetup);
+	ItemSlot->OnHoverEnd.BindUObject(ItemInspector, &UInv_ItemInspector::HideInspector);
+	ItemSlot->OnItemDragged.BindUObject(this, &UInventoryHUD::CreateDragDropWidget);
+}
+
+#pragma endregion
 
 bool UInventoryHUD::ToggleHUD()
 {

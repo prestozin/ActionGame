@@ -7,9 +7,8 @@
 #include "Inv_OnDragSlot.generated.h"
 
 class UImage;
-/**
- * 
- */
+
+
 UCLASS()
 class INVENTORY_API UInv_OnDragSlot : public UUserWidget
 {

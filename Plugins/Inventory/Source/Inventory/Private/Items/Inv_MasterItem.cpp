@@ -2,8 +2,7 @@
 
 
 #include "Items/Inv_MasterItem.h"
-#include "Components/InventoryComponent.h"
-
+#include "Data/Inv_ItemDataStructs.h"
 
 AInv_MasterItem::AInv_MasterItem()
 {
@@ -35,7 +34,6 @@ void AInv_MasterItem::BeginPlay()
 
 	SetItemMesh();
 	
-	
 }
 
 #pragma region GetItemData
@@ -48,26 +46,24 @@ void AInv_MasterItem::GetItemData_Implementation(FName& OutItemName, int32& OutQ
 
 void AInv_MasterItem::SetItemMesh() const
 {
-	UActorComponent* ItemComponent = GetWorld()->GetFirstPlayerController()->GetPawn()->FindComponentByClass<UInventoryComponent>();
+	if (!DataTable) return;
+
+	FItemData* Item = DataTable->FindRow<FItemData>(ID, TEXT("SetItemMesh"));
 	
-	if (ItemComponent && ItemComponent->GetClass() == UInventoryComponent::StaticClass())
+	if (UStaticMesh* StaticMesh = Item->ItemAssetData.StaticMesh.LoadSynchronous())
 	{
-		UObject* DataTableMesh = IInv_InteractionInterface::Execute_GetItemMesh(ItemComponent, ID);
-		if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(DataTableMesh))
+		if (IsValid(ItemStaticMesh))
 		{
-			if (IsValid(ItemStaticMesh))
-			{
-				ItemStaticMesh->SetStaticMesh(StaticMesh);
-				ItemSkeletalMesh->SetSkeletalMesh(nullptr);
-			}
+			ItemStaticMesh->SetStaticMesh(StaticMesh);
+			ItemSkeletalMesh->SetSkeletalMesh(nullptr);
 		}
-		else if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(DataTableMesh))
+	}
+	else if (USkeletalMesh* SkeletalMesh = Item->ItemAssetData.SkeletalMesh.LoadSynchronous())
+	{
+		if (IsValid(ItemSkeletalMesh))
 		{
-			if (IsValid(ItemSkeletalMesh))
-			{
-				ItemSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
-				ItemStaticMesh->SetStaticMesh(nullptr);
-			}
+			ItemSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
+			ItemStaticMesh->SetStaticMesh(nullptr);
 		}
 	}
 }
