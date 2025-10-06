@@ -35,10 +35,17 @@ private:
 	USlider* QuantitySlider;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* ConfirmSplit;
+	UButton* ConfirmSplitButton;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* CancelButton;
 
 	UFUNCTION()
-	void OnButtonClicked();
+	void ButtonSplitConfirmed();
+
+	UFUNCTION()
+	void CancelConfirmed();
+	
 	
 	UFUNCTION()
 	void OnSliderValueChanged(float Value);

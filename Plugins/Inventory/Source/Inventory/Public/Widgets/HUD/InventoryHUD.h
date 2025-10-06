@@ -15,6 +15,7 @@ enum class EHUDUpdates : uint8
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Interfaces/Inv_InteractionInterface.h"
+#include "Data/Inv_ItemDataStructs.h"
 #include "InventoryHUD.generated.h"
 
 class UGridPanel;
@@ -26,6 +27,8 @@ class UInv_SplitStack;
 class UInv_ItemSlot;
 class UInv_DragDrop;
 class UInv_DropZone;
+class UInv_Filter;
+
 
 
 
@@ -109,6 +112,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 SlotsPerLine = 5;
+
+	UPROPERTY(meta = (BindWidget))
+	UInv_Filter* FilterButton;
 	
 	// ================================
 	// =       FUNCTIONS           =
@@ -144,6 +150,8 @@ private:
 
 	UInv_ItemInspector* GetItemInspector() const { return ItemInspector; }
 
+	void SetupFilter(EItemType& EnumType);
+	
 public:
 	
 	// ================================

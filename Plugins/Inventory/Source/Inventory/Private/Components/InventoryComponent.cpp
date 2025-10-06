@@ -3,7 +3,6 @@
 #include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
-#include "Kismet/GameplayStatics.h"
 
 #pragma region StartSection
 
@@ -116,10 +115,17 @@ void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 void UInventoryComponent::RemoveItem(int32 Index)
 {
 	if (!Inventory.IsValidIndex(Index)) return;
+
+	UWorld* World = GetWorld();
+	AActor* ActorOwner = GetOwner();
 	
+	if (!World || !ActorOwner) return;
+
+	FItemData& ItemToRemove = Inventory[Index];
+	
+	AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
 	Inventory.RemoveAt(Index);
 	UpdateInventorySlot(EInventoryUpdateType::Remove, Index);
-	
 }
 
 
@@ -274,33 +280,6 @@ void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
 
 #pragma endregion
 
-void UInventoryComponent::SpawnItem(int32 DraggedIndex) const
-{	
-	UWorld* World = GetWorld();
-	if (!World || !ItemClass) return;
-	
-	const FItemData& ItemToSpawn = Inventory[DraggedIndex];
-	
-	if (ItemToSpawn.ID.IsNone()) return;
-		
-	FVector SpawnLocation = GetOwner()->GetActorLocation();
-	FRotator SpawnRotation = FRotator::ZeroRotator;
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	SpawnParameters.Owner = GetOwner();
-
-	//use deferred to configure the actor before spawn
-	AInv_MasterItem* SpawnedItem = World->SpawnActorDeferred<AInv_MasterItem>(
-	ItemClass.Get(), FTransform(SpawnRotation, SpawnLocation), nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-		
-	if (!SpawnedItem) return;
-	SpawnedItem->ID = ItemToSpawn.ID;
-	SpawnedItem->Quantity = ItemToSpawn.ItemNumericData.Quantity;
-
-	UGameplayStatics::FinishSpawningActor(SpawnedItem, FTransform(SpawnRotation, SpawnLocation));
-		
-	UE_LOG(LogTemp, Warning, TEXT("Spawned item: %s at %s"), *SpawnedItem->GetName(), *SpawnedItem->GetActorLocation().ToString());
-}
 
 
 	

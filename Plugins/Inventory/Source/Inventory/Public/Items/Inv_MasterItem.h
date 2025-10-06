@@ -63,5 +63,7 @@ public:
 	// ================================
 	
 	virtual void GetItemData_Implementation(FName& OutItemName, int32& OutQuantity) override;
+
+	static void SpawnItem(UWorld* World, UDataTable* OtherDataTable, FName ItemID, int32 ItemQuantity,const FVector SpawnLocation, AActor* Owner);
 	
 };

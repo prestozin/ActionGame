@@ -29,15 +29,25 @@ void UInv_SplitStack::SetSplitSetup()
 		QuantitySpinBox->SetMaxValue(MaxStack);
 	}
 
-	if (ConfirmSplit)
+	if (ConfirmSplitButton)
 	{
-		ConfirmSplit->OnClicked.AddDynamic(this, &UInv_SplitStack::OnButtonClicked);
+		ConfirmSplitButton->OnClicked.AddDynamic(this, &UInv_SplitStack::ButtonSplitConfirmed);
+	}
+
+	if (CancelButton)
+	{
+		CancelButton->OnClicked.AddDynamic(this, &UInv_SplitStack::CancelConfirmed);
 	}
 }
 
-void UInv_SplitStack::OnButtonClicked()
+void UInv_SplitStack::ButtonSplitConfirmed()
 {
 	OnSplitConfirmed.ExecuteIfBound(SlotIndex, ValueToSplit);
+	RemoveFromParent();
+}
+
+void UInv_SplitStack::CancelConfirmed()
+{
 	RemoveFromParent();
 }
 

@@ -3,6 +3,7 @@
 
 #include "Items/Inv_MasterItem.h"
 #include "Data/Inv_ItemDataStructs.h"
+#include "Kismet/GameplayStatics.h"
 
 AInv_MasterItem::AInv_MasterItem()
 {
@@ -31,9 +32,7 @@ AInv_MasterItem::AInv_MasterItem()
 void AInv_MasterItem::BeginPlay()
 {
 	Super::BeginPlay();
-
 	SetItemMesh();
-	
 }
 
 #pragma region GetItemData
@@ -42,6 +41,29 @@ void AInv_MasterItem::GetItemData_Implementation(FName& OutItemName, int32& OutQ
 {
 	OutItemName = ID;
 	OutQuantity = Quantity;
+}
+
+void AInv_MasterItem::SpawnItem(UWorld* World, UDataTable* OtherDataTable, FName ItemID, int32 ItemQuantity, const FVector SpawnLocation, AActor* Owner)
+{
+	if (!World || !OtherDataTable || ItemID.IsNone() || ItemQuantity <= 0) return;
+		
+	FItemData* ItemToSpawn = OtherDataTable->FindRow<FItemData>(ItemID, TEXT("Item"));
+	
+	if (!ItemToSpawn) return;
+	
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	SpawnParameters.Owner = Owner;
+	
+	AInv_MasterItem* SpawnedItem=  World->SpawnActorDeferred<AInv_MasterItem>(StaticClass(), FTransform(FRotator::ZeroRotator, SpawnLocation), Owner);
+	
+	if (!SpawnedItem) return;
+	
+	SpawnedItem->ID = ItemID;
+	SpawnedItem->Quantity = ItemQuantity;
+	SpawnedItem->DataTable = OtherDataTable;
+
+	UGameplayStatics::FinishSpawningActor(SpawnedItem, FTransform(FRotator::ZeroRotator, SpawnLocation));
 }
 
 void AInv_MasterItem::SetItemMesh() const

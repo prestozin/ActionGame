@@ -12,6 +12,8 @@
 #include "Widgets/Item/Inspection/Inv_ItemInspector.h"
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
+#include "Widgets/HUD/InventoryFilters/Inv_Filter.h"
+
 
 
 void UInventoryHUD::NativeConstruct()
@@ -188,7 +190,6 @@ void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 Destina
 		}
 		else //if destination index is not valid, then it's trying to remove the item
 		{
-			PlayerInventory->SpawnItem(DraggedIndex);
 			PlayerInventory->RemoveItem(DraggedIndex);
 		}
 	}
@@ -203,6 +204,7 @@ void UInventoryHUD::CreateDefaultWidgets()
 	CreateInteractWidget();
 	CreateItemInspectorWidget();
 	CreateDragDropSetup();
+	FilterButton->OnFilterClicked.BindUObject(this, &UInventoryHUD::SetupFilter);
 }
 
 void UInventoryHUD::CreateInteractWidget()
@@ -248,6 +250,29 @@ UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 	DragDropWidget->DraggedIndex = ItemSlot->GetSlotIndex();
 	
 	return DragDropWidget;
+}
+
+void UInventoryHUD::SetupFilter(EItemType& EnumType)
+{
+	if (!InventoryGridPanel || InventorySlots.Num() <= 0 || !PlayerInventory) return;
+	
+	for (int32 Index = 0; Index < InventorySlots.Num(); Index++)
+	{
+		UInv_ItemSlot* SlotToFilter = InventorySlots[Index];
+		
+		if (!SlotToFilter || !PlayerInventory->Inventory.IsValidIndex(Index)) return;
+		
+		const FItemData& Item = PlayerInventory->Inventory[Index];
+		
+		if (Item.ItemType != EnumType)
+		{
+			SlotToFilter->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			SlotToFilter->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
 }
 
 void UInventoryHUD::CreateItemInspectorWidget()

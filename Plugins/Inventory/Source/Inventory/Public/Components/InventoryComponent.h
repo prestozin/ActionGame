@@ -65,8 +65,6 @@ public:
 	
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
 	
-	void SpawnItem(int32 DraggedIndex) const;
-	
 private:
 	
 	// ================================
