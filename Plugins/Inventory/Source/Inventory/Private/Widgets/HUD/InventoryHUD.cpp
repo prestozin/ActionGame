@@ -20,8 +20,7 @@ void UInventoryHUD::NativeConstruct()
 	Super::NativeConstruct();
 	
 	CreateDefaultWidgets();
-	InventorySlots.Empty();
-	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	InventorySlots.Empty();	
 }
 
 #pragma region InventoryUpdates
@@ -173,6 +172,8 @@ void UInventoryHUD::CreateDefaultWidgets()
 	CreateInteractWidget();
 	CreateItemInspectorWidget();
 	CreateDragDropSetup();
+	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	InventoryFilter = EItemType::None;
 }
 
 void UInventoryHUD::CreateInteractWidget()
@@ -270,8 +271,6 @@ void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int3
 
 void UInventoryHUD::FilterInventory(EItemType FilterType)
 {
-	InventoryFilter = FilterType;
-		
 	if (!InventoryGridPanel || InventorySlots.Num() <= 0 || !PlayerInventory) return;
 
 	//create an index to any visible slot that will be used to reorganize the slot position on grid
@@ -307,6 +306,7 @@ void UInventoryHUD::FilterInventory(EItemType FilterType)
 			SlotToFilter->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
+	InventoryFilter = FilterType;
 }
 
 bool UInventoryHUD::ToggleHUD()

@@ -48,7 +48,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 	TSubclassOf<AInv_MasterItem> ItemClass;
 	
 	UPROPERTY()
@@ -66,7 +66,7 @@ public:
 	
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
 
-	void DropItemQuantity(int32 SlotIndex, int32 Quantity);
+	void DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract);
 	
 private:
 	

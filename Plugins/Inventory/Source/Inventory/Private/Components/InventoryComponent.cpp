@@ -111,36 +111,25 @@ void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 	UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
 }
 
-void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 Quantity)
+void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract)
 {
 	if (!Inventory.IsValidIndex(SlotIndex)) return;
 
 	UWorld* World = GetWorld();
 	AActor* ActorOwner = GetOwner();
-	FItemData& ItemToSubtract = Inventory[SlotIndex];
+	FItemData& Item = Inventory[SlotIndex];
 	
-	if (!World || !ActorOwner) return;
+	if (!World || !ActorOwner || Item.ID.IsNone()) return;
 	
-	if (Quantity > 0)
+	if (Item.ItemNumericData.Quantity == QuantityToSubtract)
 	{
-		ItemToSubtract.ItemNumericData.Quantity -= Quantity;
+		RemoveItem(SlotIndex);
+	}
+	else if (QuantityToSubtract < Item.ItemNumericData.Quantity && QuantityToSubtract > 0)
+	{
+		Item.ItemNumericData.Quantity -= QuantityToSubtract;
 		UpdateInventorySlot(EInventoryUpdateType::Existing, SlotIndex);
-
-		if (ItemToSubtract.ItemNumericData.Quantity <= 0)
-		{
-			RemoveItem(SlotIndex);
-			UpdateInventorySlot(EInventoryUpdateType::Remove, SlotIndex);
-		}
-		FItemData& ItemToRemove = Inventory[SlotIndex];
-		
-		if (ItemToRemove.ItemNumericData.Quantity > 0)
-		{
-			AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
-		}
-		else
-		{
-			AInv_MasterItem::SpawnItem(World, DataTable, ItemToSubtract.ID, ItemToSubtract.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
-		}
+		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToSubtract, ActorOwner->GetActorLocation(),ActorOwner);
 	}
 }
 

@@ -146,8 +146,6 @@ private:
 	UDragDropOperation* CreateDragDropWidget(UInv_ItemSlot* ItemSlot);
 
 	UInv_ItemInspector* GetItemInspector() const { return ItemInspector; }
-
-	void RefreshGrid();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void FilterInventory(EItemType FilterType);
