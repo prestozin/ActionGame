@@ -76,7 +76,6 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
 }
 
-
 void UInventoryComponent::SplitItem(int32 IndexToSplit, int32 QuantityToSplit)
 {
 	if (!Inventory.IsValidIndex(IndexToSplit)) return;
@@ -110,6 +109,39 @@ void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 		
 	Inventory.Swap(DraggedIndex, DestinationIndex);
 	UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+}
+
+void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 Quantity)
+{
+	if (!Inventory.IsValidIndex(SlotIndex)) return;
+
+	UWorld* World = GetWorld();
+	AActor* ActorOwner = GetOwner();
+	FItemData& ItemToSubtract = Inventory[SlotIndex];
+	
+	if (!World || !ActorOwner) return;
+	
+	if (Quantity > 0)
+	{
+		ItemToSubtract.ItemNumericData.Quantity -= Quantity;
+		UpdateInventorySlot(EInventoryUpdateType::Existing, SlotIndex);
+
+		if (ItemToSubtract.ItemNumericData.Quantity <= 0)
+		{
+			RemoveItem(SlotIndex);
+			UpdateInventorySlot(EInventoryUpdateType::Remove, SlotIndex);
+		}
+		FItemData& ItemToRemove = Inventory[SlotIndex];
+		
+		if (ItemToRemove.ItemNumericData.Quantity > 0)
+		{
+			AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
+		}
+		else
+		{
+			AInv_MasterItem::SpawnItem(World, DataTable, ItemToSubtract.ID, ItemToSubtract.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
+		}
+	}
 }
 
 void UInventoryComponent::RemoveItem(int32 Index)
@@ -167,7 +199,6 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 		ItemToStack.ItemNumericData.Quantity -= NewStack;
 	}
 }
-
 
 void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex)
 {
@@ -230,6 +261,10 @@ void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, I
 		UpdateOnSwap(IndexesToUpdate);
 		break;
 		
+	case
+		EInventoryUpdateType::Existing:
+		InventoryHUD->UpdateSlots(EHUDUpdates::Existing, IndexesToUpdate);
+		break;
 	}
 	
 	InventoryHUD->UpdateIndexes();

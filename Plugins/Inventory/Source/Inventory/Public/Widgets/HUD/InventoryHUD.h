@@ -27,9 +27,6 @@ class UInv_SplitStack;
 class UInv_ItemSlot;
 class UInv_DragDrop;
 class UInv_DropZone;
-class UInv_Filter;
-
-
 
 
 UCLASS()
@@ -112,9 +109,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 SlotsPerLine = 5;
-
-	UPROPERTY(meta = (BindWidget))
-	UInv_Filter* FilterButton;
+	
+	UPROPERTY()
+	EItemType InventoryFilter = EItemType::None;
 	
 	// ================================
 	// =       FUNCTIONS           =
@@ -150,7 +147,10 @@ private:
 
 	UInv_ItemInspector* GetItemInspector() const { return ItemInspector; }
 
-	void SetupFilter(EItemType& EnumType);
+	void RefreshGrid();
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void FilterInventory(EItemType FilterType);
 	
 public:
 	

@@ -17,6 +17,7 @@ class UButton;
 #pragma region Delegates
 
 DECLARE_DELEGATE_TwoParams(FOnSplitConfirmed, int32 /*SlotIndex*/, int32 /*Quantity*/);
+DECLARE_DELEGATE_TwoParams(FOnDropConfirmed, int32 /*SlotIndex*/, int32 /*DropQuantity*/);
 
 #pragma endregion
 
@@ -25,8 +26,16 @@ UCLASS()
 class INVENTORY_API UInv_SplitStack : public UUserWidget
 {
 	GENERATED_BODY()
+	
+protected:
 
+	virtual void NativeConstruct() override;
+	
 private:
+
+	// ================================
+	// =        PROPERTIES            =
+	// ================================
 	
 	UPROPERTY(meta = (BindWidget))
 	USpinBox* QuantitySpinBox;
@@ -35,17 +44,26 @@ private:
 	USlider* QuantitySlider;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* ConfirmSplitButton;
+	UButton* SplitButton;
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* CancelButton;
 
+	UPROPERTY(meta = (BindWidget))
+	UButton* DropButton;
+
+	// ================================
+	// =        FUNCTIONS           =
+	// ================================
+	
 	UFUNCTION()
-	void ButtonSplitConfirmed();
+	void SplitConfirmed();
 
 	UFUNCTION()
 	void CancelConfirmed();
 	
+	UFUNCTION()
+	void DropConfirmed();
 	
 	UFUNCTION()
 	void OnSliderValueChanged(float Value);
@@ -57,6 +75,10 @@ private:
 	
 public:
 	
+	// ================================
+	// =        PROPERTIES            =
+	// ================================
+	
 	UPROPERTY()
 	int32 MaxStack;
 	
@@ -66,10 +88,11 @@ public:
 	UPROPERTY()
 	int32 ValueToSplit;
 
+	// ================================
+	// =        DELEGATES          =
+	// ================================
+
 	FOnSplitConfirmed OnSplitConfirmed;
-
-protected:
-
-	virtual void NativeConstruct() override; 
-
+	
+	FOnDropConfirmed OnDropConfirmed;
 };

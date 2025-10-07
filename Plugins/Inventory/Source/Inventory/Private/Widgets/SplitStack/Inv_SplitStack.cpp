@@ -29,18 +29,23 @@ void UInv_SplitStack::SetSplitSetup()
 		QuantitySpinBox->SetMaxValue(MaxStack);
 	}
 
-	if (ConfirmSplitButton)
+	if (SplitButton)
 	{
-		ConfirmSplitButton->OnClicked.AddDynamic(this, &UInv_SplitStack::ButtonSplitConfirmed);
+		SplitButton->OnClicked.AddDynamic(this, &UInv_SplitStack::SplitConfirmed);
 	}
 
 	if (CancelButton)
 	{
 		CancelButton->OnClicked.AddDynamic(this, &UInv_SplitStack::CancelConfirmed);
 	}
+
+	if (DropButton)
+	{
+		DropButton->OnClicked.AddDynamic(this, &UInv_SplitStack::DropConfirmed);
+	}
 }
 
-void UInv_SplitStack::ButtonSplitConfirmed()
+void UInv_SplitStack::SplitConfirmed()
 {
 	OnSplitConfirmed.ExecuteIfBound(SlotIndex, ValueToSplit);
 	RemoveFromParent();
@@ -48,6 +53,17 @@ void UInv_SplitStack::ButtonSplitConfirmed()
 
 void UInv_SplitStack::CancelConfirmed()
 {
+	RemoveFromParent();
+}
+
+void UInv_SplitStack::DropConfirmed()
+{
+	int32 QuantityToDrop = QuantitySlider->GetValue();
+	
+	if (QuantityToDrop > 0)
+	{
+		OnDropConfirmed.ExecuteIfBound(SlotIndex, QuantityToDrop);
+	}
 	RemoveFromParent();
 }
 

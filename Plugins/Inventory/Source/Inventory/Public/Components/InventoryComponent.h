@@ -7,6 +7,7 @@ enum class EInventoryUpdateType : uint8
 	Insert  UMETA(DisplayName = "Insert"),
 	Remove  UMETA(DisplayName = "Remove"),
 	Swap    UMETA(DisplayName = "Swap"),
+	Existing    UMETA(DisplayName = "Existing"),
 };
 
 #include "CoreMinimal.h"
@@ -64,6 +65,8 @@ public:
 	void RemoveItem(int32 Index);
 	
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
+
+	void DropItemQuantity(int32 SlotIndex, int32 Quantity);
 	
 private:
 	
@@ -98,5 +101,5 @@ private:
 	// =================================
 
 	template<typename... Indexes>
-    	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
+	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
 };

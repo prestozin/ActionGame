@@ -15,12 +15,13 @@ enum class EItemRarity : uint8
 	Legendary UMETA( DisplayName = "Legendary" )
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class EItemType : uint8
 {
 	Weapon UMETA( DisplayName = "Weapon" ),
 	Consumables UMETA( DisplayName = "Consumables" ),
-	Talismans UMETA( DisplayName = "Talismans" )
+	Talismans UMETA( DisplayName = "Talismans" ),
+	None UMETA( DisplayName = "None" ),
 };
 
 

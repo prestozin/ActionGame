@@ -12,7 +12,6 @@
 #include "Widgets/Item/Inspection/Inv_ItemInspector.h"
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
-#include "Widgets/HUD/InventoryFilters/Inv_Filter.h"
 
 
 
@@ -91,15 +90,11 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 			SetSlotSetup(NewSlot, Icon, Quantity, IndexToCreate);
                 				
 			InventorySlots[IndexToCreate] = NewSlot;
-			
-			if (!InventoryGridPanel) return;
-
-			//slot position on grid
-			FIntPoint SlotPosition = GetGridPosition(IndexToCreate);
-			
-			InventoryGridPanel->AddChildToGrid(NewSlot, SlotPosition.Y, SlotPosition.X);
+				
+			InventoryGridPanel->AddChildToGrid(NewSlot);
 		}
 	}
+	FilterInventory(InventoryFilter);
 }
 
 void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
@@ -123,22 +118,9 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	
 	UpdateExistingSlot({ExistingIndex});
 	
-	FIntPoint SlotPosition = GetGridPosition(IndexToInsert);
-	InventoryGridPanel->AddChildToGrid(SlotToInsert, SlotPosition.Y, SlotPosition.X);
-			
-	for (int32 Index = IndexToInsert + 1; Index < InventorySlots.Num(); Index++)
-	{
-		if (InventorySlots[Index])
-		{
-			FIntPoint UpdatedPosition = GetGridPosition(Index);
-			if (UGridSlot* GridSlot = Cast<UGridSlot>(InventorySlots[Index]->Slot))
-			{
-				GridSlot->SetRow(UpdatedPosition.Y);
-				GridSlot->SetColumn(UpdatedPosition.X);
-			}
-			InventorySlots[Index]->SetSlotIndex(Index);
-		}
-	}
+	InventoryGridPanel->AddChildToGrid(SlotToInsert);
+
+	FilterInventory(InventoryFilter);
 }
 
 void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
@@ -159,20 +141,7 @@ void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
 		InventoryGridPanel->RemoveChild(SlotToRemove);
 		InventorySlots.RemoveAt(IndexToRemove);
 
-		for (int32 IndexToUpdate = IndexToRemove; IndexToUpdate < InventorySlots.Num(); IndexToUpdate++)
-		{
-			if (InventorySlots[IndexToUpdate])
-			{
-				if (UGridSlot* GridSlot = Cast<UGridSlot>(InventorySlots[IndexToUpdate]->Slot))
-				{
-					FIntPoint SlotPosition = GetGridPosition(IndexToUpdate);
-					GridSlot->SetRow(SlotPosition.Y);
-					GridSlot->SetColumn(SlotPosition.X);
-				}
-				InventorySlots[IndexToUpdate]->SetSlotIndex(IndexToUpdate);
-			}
-		}
-		
+		FilterInventory(InventoryFilter);
 	}
 }
 
@@ -204,7 +173,6 @@ void UInventoryHUD::CreateDefaultWidgets()
 	CreateInteractWidget();
 	CreateItemInspectorWidget();
 	CreateDragDropSetup();
-	FilterButton->OnFilterClicked.BindUObject(this, &UInventoryHUD::SetupFilter);
 }
 
 void UInventoryHUD::CreateInteractWidget()
@@ -235,6 +203,7 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 	SplitStackWidget->SlotIndex = Index;
 	SplitStackWidget->MaxStack = Item.ItemNumericData.Quantity;
 	SplitStackWidget->OnSplitConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::SplitItem);
+	SplitStackWidget->OnDropConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::DropItemQuantity);
 	SplitStackWidget->AddToViewport();
 }
 
@@ -250,29 +219,6 @@ UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 	DragDropWidget->DraggedIndex = ItemSlot->GetSlotIndex();
 	
 	return DragDropWidget;
-}
-
-void UInventoryHUD::SetupFilter(EItemType& EnumType)
-{
-	if (!InventoryGridPanel || InventorySlots.Num() <= 0 || !PlayerInventory) return;
-	
-	for (int32 Index = 0; Index < InventorySlots.Num(); Index++)
-	{
-		UInv_ItemSlot* SlotToFilter = InventorySlots[Index];
-		
-		if (!SlotToFilter || !PlayerInventory->Inventory.IsValidIndex(Index)) return;
-		
-		const FItemData& Item = PlayerInventory->Inventory[Index];
-		
-		if (Item.ItemType != EnumType)
-		{
-			SlotToFilter->SetVisibility(ESlateVisibility::Collapsed);
-		}
-		else
-		{
-			SlotToFilter->SetVisibility(ESlateVisibility::Visible);
-		}
-	}
 }
 
 void UInventoryHUD::CreateItemInspectorWidget()
@@ -321,6 +267,47 @@ void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int3
 }
 
 #pragma endregion
+
+void UInventoryHUD::FilterInventory(EItemType FilterType)
+{
+	InventoryFilter = FilterType;
+		
+	if (!InventoryGridPanel || InventorySlots.Num() <= 0 || !PlayerInventory) return;
+
+	//create an index to any visible slot that will be used to reorganize the slot position on grid
+	int32 VisibleSlotIndex = 0;
+	
+	for (int32 Index = 0; Index < InventorySlots.Num(); Index++)
+	{
+		UInv_ItemSlot* SlotToFilter = InventorySlots[Index];
+		
+		if (!SlotToFilter || !PlayerInventory->Inventory.IsValidIndex(Index)) continue;
+
+		const FItemData& Item = PlayerInventory->Inventory[Index];
+		
+		const bool bShouldBeVisible = (FilterType == EItemType::None || Item.ItemType == FilterType);
+		
+		if (bShouldBeVisible)
+		{
+			SlotToFilter->SetVisibility(ESlateVisibility::Visible);
+
+			//get the slot from grid to change position
+			if (UGridSlot* GridSlot = Cast<UGridSlot>(SlotToFilter->Slot))
+			{
+				//change the position of the slot based in if should be visible or not, avoiding empty spaces of hidden slots
+				FIntPoint SlotPosition = GetGridPosition(VisibleSlotIndex);
+				
+				GridSlot->SetRow(SlotPosition.Y);
+				GridSlot->SetColumn(SlotPosition.X);
+			}
+			VisibleSlotIndex++;
+		}
+		else
+		{
+			SlotToFilter->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+}
 
 bool UInventoryHUD::ToggleHUD()
 {
