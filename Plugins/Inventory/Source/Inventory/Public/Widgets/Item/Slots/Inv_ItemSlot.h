@@ -19,9 +19,11 @@ class UImage;
 
 DECLARE_DELEGATE_OneParam(FOnItemHovered, int32 /*SlotIndex*/);
 DECLARE_DELEGATE_OneParam(FOnSplitStart, int32 /*SlotIndex*/);
+DECLARE_DELEGATE_OneParam(FOnSlotClicked, int32 /*SlotIndex*/);
 DECLARE_DELEGATE(FOnHoverEnd);
 DECLARE_DELEGATE_RetVal_OneParam(UDragDropOperation*, FOnItemDragged, UInv_ItemSlot* /*SlotIndex*/);
 DECLARE_DELEGATE_TwoParams(FOnItemDropped,UDragDropOperation* /*DragDrop*/, int32 /*ToIndex*/);
+DECLARE_DELEGATE(FOnSlotDragged);
 
 #pragma endregion
 /**
@@ -52,7 +54,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* ImageIcon;
-	
+
+	UPROPERTY()
+	bool bDragDetected = false;
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
@@ -81,6 +85,7 @@ public:
 	// =        DELEGATES           =
 	// =================================
 	
+	FOnSlotClicked OnSlotClicked;
 
 	FOnItemHovered OnItemHovered;
 
@@ -91,6 +96,8 @@ public:
 	FOnItemDragged OnItemDragged;
 
 	FOnItemDropped OnItemDropped;
+
+	FOnSlotDragged OnSlotDragged;
 	
 protected:
 
@@ -101,4 +108,5 @@ protected:
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 };

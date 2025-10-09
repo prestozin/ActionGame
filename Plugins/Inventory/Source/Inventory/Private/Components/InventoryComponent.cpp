@@ -34,7 +34,7 @@ void UInventoryComponent::CreateHUDWidget()
 		
 		if (!InventoryHUD) return;
 		
-		InventoryHUD->PlayerInventory = this;
+		InventoryHUD->SetPlayerInventory(this);
 		InventoryHUD->AddToViewport();
 		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
 	}
@@ -255,8 +255,6 @@ void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, I
 		InventoryHUD->UpdateSlots(EHUDUpdates::Existing, IndexesToUpdate);
 		break;
 	}
-	
-	InventoryHUD->UpdateIndexes();
 }
 
 void UInventoryComponent::UpdateOnAdd(const TArray<int32>& IndexesToUpdate)

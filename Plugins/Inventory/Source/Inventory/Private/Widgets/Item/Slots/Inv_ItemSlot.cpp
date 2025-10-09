@@ -7,7 +7,6 @@
 #include "Components/TextBlock.h"
 
 
-
 void UInv_ItemSlot::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -20,6 +19,7 @@ void UInv_ItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoi
 	if (OnItemDragged.IsBound())
 	{
 		OutOperation = OnItemDragged.Execute(this);
+		OnSlotDragged.ExecuteIfBound();
 	}
 }
 
@@ -33,7 +33,14 @@ FReply UInv_ItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 			return FReply::Handled();
 		}
 	}
+	
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UInv_ItemSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	OnSlotClicked.ExecuteIfBound(SlotIndex);
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
 }
 
 void UInv_ItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

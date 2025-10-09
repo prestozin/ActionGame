@@ -12,6 +12,7 @@
 #include "Widgets/Item/Inspection/Inv_ItemInspector.h"
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
+#include "Widgets/Item/ContextMenu/Inv_SlotContextMenu.h"
 
 
 
@@ -20,7 +21,9 @@ void UInventoryHUD::NativeConstruct()
 	Super::NativeConstruct();
 	
 	CreateDefaultWidgets();
-	InventorySlots.Empty();	
+	InventorySlots.Empty();
+	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	InventoryFilter = EItemType::None;
 }
 
 #pragma region InventoryUpdates
@@ -35,6 +38,12 @@ void UInventoryHUD::UpdateIndexes()
 			InventorySlots[Index]->SetSlotIndex(Index);
 		}
 	}
+}
+
+void UInventoryHUD::SetPlayerInventory(UInventoryComponent* Inventory)
+{
+	if (!Inventory) return;
+	PlayerInventory = Inventory;
 }
 
 void UInventoryHUD::UpdateExistingSlot(TArray<int32> IndexesToUpdate)
@@ -172,8 +181,7 @@ void UInventoryHUD::CreateDefaultWidgets()
 	CreateInteractWidget();
 	CreateItemInspectorWidget();
 	CreateDragDropSetup();
-	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
-	InventoryFilter = EItemType::None;
+	CreateContextMenu();
 }
 
 void UInventoryHUD::CreateInteractWidget()
@@ -182,7 +190,7 @@ void UInventoryHUD::CreateInteractWidget()
 	
 	if (!InteractWidget) return;
 	
-	InteractWidget->AddToViewport();
+	InteractWidget->AddToViewport(1);
 }
 
 void UInventoryHUD::CreateSplitStackWidget(int32 Index)
@@ -256,6 +264,30 @@ void UInventoryHUD::CreateDragDropSetup()
 	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
 }
 
+void UInventoryHUD::CreateContextMenu()
+{
+	
+	if (!ContextMenuWidget) return;
+	
+	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
+	ContextMenuWidget->OnDropClicked.BindUObject(PlayerInventory, &UInventoryComponent::RemoveItem);
+}
+
+void UInventoryHUD::SetContextMenuSetup(int32 SlotIndex)
+{
+	if (!ContextMenuWidget || SlotIndex < 0) return;
+	ContextMenuWidget->SlotIndex = SlotIndex;
+	if (ContextMenuWidget->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		ContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		ContextMenuWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	
+}
+
 void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int32 Quantity, int32 Index)
 {
 	if (!ItemSlot) return;
@@ -265,6 +297,8 @@ void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int3
 	ItemSlot->OnItemHovered.BindUObject(this, &UInventoryHUD::SetInspectorSetup);
 	ItemSlot->OnHoverEnd.BindUObject(ItemInspector, &UInv_ItemInspector::HideInspector);
 	ItemSlot->OnItemDragged.BindUObject(this, &UInventoryHUD::CreateDragDropWidget);
+	ItemSlot->OnSlotClicked.BindUObject(this, &UInventoryHUD::SetContextMenuSetup);
+	ItemSlot->OnSlotDragged.BindUObject(ContextMenuWidget, &UInv_SlotContextMenu::CloseContextMenu);
 }
 
 #pragma endregion
