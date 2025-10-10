@@ -19,11 +19,7 @@
 void UInventoryHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
 	CreateDefaultWidgets();
-	InventorySlots.Empty();
-	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
-	InventoryFilter = EItemType::None;
 }
 
 #pragma region InventoryUpdates
@@ -40,46 +36,81 @@ void UInventoryHUD::UpdateIndexes()
 	}
 }
 
-void UInventoryHUD::SetPlayerInventory(UInventoryComponent* Inventory)
+void UInventoryHUD::InitializeHUD(UInventoryComponent* Inventory)
 {
 	if (!Inventory) return;
 	PlayerInventory = Inventory;
+	InventorySlots.Empty();
+	InventoryFilter = EItemType::None;
+	if (!DropZoneWidget) return;
+	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	PlayerInventory->OnInventoryChanged.AddUObject(this, &UInventoryHUD::HandleInventoryUpdate);
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UInventoryHUD::UpdateExistingSlot(TArray<int32> IndexesToUpdate)
+void UInventoryHUD::HandleInventoryUpdate(EInventoryUpdate UpdateType, const TArray<int32>& ModifiedIndexes)
 {
-	for (int32 Index : IndexesToUpdate)
-	{ 
-		int32 IndexToUpdate = Index;
-
-		if (!PlayerInventory->Inventory.IsValidIndex(IndexToUpdate) || !InventorySlots.IsValidIndex(IndexToUpdate)) continue;
-		
-		UInv_ItemSlot* SlotToUpdate = InventorySlots[IndexToUpdate];
-		
-		const FItemData& Item = PlayerInventory->Inventory[IndexToUpdate];
-		
-		if (Item.ItemNumericData.Quantity <= 0)
-		{
-			if (SlotToUpdate && InventoryGridPanel)
-			{ RemoveSlot({IndexToUpdate}); } 
-		} 
-		else if (SlotToUpdate) 
-		{
-			UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();
-			int32 Quantity = Item.ItemNumericData.Quantity;
-			SlotToUpdate->SetSlotInfo(Icon, Quantity, IndexToUpdate); 
-		}
-	} 
-}
-
-void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
-{
-	for (int32 Index : IndexesToUpdate)
+	switch (UpdateType)
 	{
-		if (!PlayerInventory->Inventory.IsValidIndex(Index)) return;
-		int32 IndexToCreate = Index;
 		
-		InventorySlots.SetNum(PlayerInventory->Inventory.Num());
+	case EInventoryUpdate::Create:
+		for (int32 IndexToUpdate : ModifiedIndexes)
+		{
+			CreateSlot(IndexToUpdate);
+		}
+		break;
+		
+	case EInventoryUpdate::Insert:
+		InsertSlot(ModifiedIndexes);
+		break;
+
+	case EInventoryUpdate::Remove:
+		for (int32 IndexToRemove : ModifiedIndexes)
+		{
+			RemoveSlot(IndexToRemove);
+		}
+		break;
+
+	case EInventoryUpdate::Update:
+		for (int32 IndexToUpdate : ModifiedIndexes)
+		{
+			UpdateExistingSlot(IndexToUpdate);
+		}
+		break;
+		
+		default: break;
+	}
+	UpdateIndexes();
+}
+
+void UInventoryHUD::UpdateExistingSlot(int32 IndexToUpdate)
+{
+	if (!PlayerInventory->IsValidSlot(IndexToUpdate) || !InventorySlots.IsValidIndex(IndexToUpdate)) return;
+		
+	UInv_ItemSlot* SlotToUpdate = InventorySlots[IndexToUpdate];
+		
+	const FItemData* Item = PlayerInventory->GetItemAt(IndexToUpdate);
+		
+	if (Item->ItemNumericData.Quantity <= 0)
+	{
+		if (SlotToUpdate && InventoryGridPanel)
+		{ RemoveSlot({IndexToUpdate}); } 
+	} 
+	else if (SlotToUpdate) 
+	{
+		UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();
+		int32 Quantity = Item->ItemNumericData.Quantity;
+		SlotToUpdate->SetSlotInfo(Icon, Quantity, IndexToUpdate);
+	}
+} 
+
+
+void UInventoryHUD::CreateSlot(int32 IndexToUpdate)
+{
+		if (!PlayerInventory->IsValidSlot(IndexToUpdate)) return;
+		int32 IndexToCreate = IndexToUpdate;
+		
+		InventorySlots.SetNum(PlayerInventory->GetInventorySize());
 		
 		if (InventorySlots.IsValidIndex(IndexToCreate) && InventorySlots[IndexToCreate] != nullptr)
 		{
@@ -87,9 +118,9 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 		} 
 		else
 		{
-			const FItemData& Item = PlayerInventory->Inventory[IndexToCreate];
-			UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();;
-			int32 Quantity = Item.ItemNumericData.Quantity;
+			const FItemData* Item = PlayerInventory->GetItemAt(IndexToUpdate);
+			UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();;
+			int32 Quantity = Item->ItemNumericData.Quantity;
 			                        				       
 			UInv_ItemSlot* NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
                 			
@@ -101,7 +132,6 @@ void UInventoryHUD::CreateSlot(TArray<int32> IndexesToUpdate)
 				
 			InventoryGridPanel->AddChildToGrid(NewSlot);
 		}
-	}
 	FilterInventory(InventoryFilter);
 }
 
@@ -112,9 +142,9 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	int32 ExistingIndex = FMath::Min(IndexesToUpdate[0], IndexesToUpdate[1]);
 	int32 IndexToInsert = FMath::Max(IndexesToUpdate[0], IndexesToUpdate[1]);
 	
-	const FItemData& Item = PlayerInventory->Inventory[IndexToInsert];
-	UTexture2D* Icon = Item.ItemAssetData.Icon.LoadSynchronous();
-	int32 Quantity = Item.ItemNumericData.Quantity;
+	const FItemData* Item = PlayerInventory->GetItemAt(IndexToInsert);
+	UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();
+	int32 Quantity = Item->ItemNumericData.Quantity;
 
 	UInv_ItemSlot* SlotToInsert  = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
 
@@ -131,26 +161,18 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	FilterInventory(InventoryFilter);
 }
 
-void UInventoryHUD::RemoveSlot(TArray<int32> IndexesToUpdate)
+void UInventoryHUD::RemoveSlot(int32 IndexToRemove)
 {
-	if (IndexesToUpdate.Num() <= 0) return;
-
-	//reorder in ascending order to make shure that the biggest index will always be removed first
-	IndexesToUpdate.Sort([](int32 A, int32 B) { return A > B; }); 
-	
-	for (int32 IndexToRemove : IndexesToUpdate)
-	{
-		if (!InventorySlots.IsValidIndex(IndexToRemove)) return;
+	if (!InventorySlots.IsValidIndex(IndexToRemove)) return;
 		
-		UInv_ItemSlot* SlotToRemove = InventorySlots[IndexToRemove];
+	UInv_ItemSlot* SlotToRemove = InventorySlots[IndexToRemove];
 			
-		if (!SlotToRemove || !InventoryGridPanel) return;
+	if (!SlotToRemove || !InventoryGridPanel) return;
 		
-		InventoryGridPanel->RemoveChild(SlotToRemove);
-		InventorySlots.RemoveAt(IndexToRemove);
+	InventoryGridPanel->RemoveChild(SlotToRemove);
+	InventorySlots.RemoveAt(IndexToRemove);
 
-		FilterInventory(InventoryFilter);
-	}
+	FilterInventory(InventoryFilter);
 }
 
 void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const
@@ -186,6 +208,7 @@ void UInventoryHUD::CreateDefaultWidgets()
 
 void UInventoryHUD::CreateInteractWidget()
 {
+	if (!InteractWidgetClass) return;
 	InteractWidget = CreateWidget<UInv_ItemInteractor>(GetWorld(), InteractWidgetClass);
 	
 	if (!InteractWidget) return;
@@ -195,7 +218,7 @@ void UInventoryHUD::CreateInteractWidget()
 
 void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 {
-	if (!SplitStackClass || !PlayerInventory) return;
+	if (!SplitStackClass) return;
 
 	if (SplitStackWidget)
 	{
@@ -207,10 +230,10 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 	
 	if (!SplitStackWidget) return;
 	
-	FItemData& Item = PlayerInventory->Inventory[Index];
+	const FItemData* Item = PlayerInventory->GetItemAt(Index);
 	
 	SplitStackWidget->SlotIndex = Index;
-	SplitStackWidget->MaxStack = Item.ItemNumericData.Quantity;
+	SplitStackWidget->MaxStack = Item->ItemNumericData.Quantity;
 	SplitStackWidget->OnSplitConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::SplitItem);
 	SplitStackWidget->OnDropConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::DropItemQuantity);
 	SplitStackWidget->AddToViewport();
@@ -218,7 +241,7 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 
 UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 {
-	if (!PlayerInventory || !DragSlotClass || !DragDropWidget) return nullptr;
+	if (!DragSlotClass || !DragDropWidget) return nullptr;
 	
 	//set drag visual
 	DragVisualWidget->SlotIcon = ItemSlot->GetSlotIcon();
@@ -232,6 +255,8 @@ UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 
 void UInventoryHUD::CreateItemInspectorWidget()
 {
+	if (!ItemInspectorClass) return;
+	
 	ItemInspector = CreateWidget<UInv_ItemInspector>(GetWorld(), ItemInspectorClass);
 	
 	if (!ItemInspector) return;
@@ -242,13 +267,13 @@ void UInventoryHUD::CreateItemInspectorWidget()
 
 void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
 {
-	FItemData& ItemInfo = PlayerInventory->Inventory[ItemIndex];
+	const FItemData* ItemInfo = PlayerInventory->GetItemAt(ItemIndex);
 
-	UTexture2D* ItemImage = ItemInfo.ItemAssetData.Icon.LoadSynchronous();
-	FText ItemName = ItemInfo.ItemTextData.Name;
-	FText ItemDescription = ItemInfo.ItemTextData.Description;
-	FText ItemRarity = EnumToText(ItemInfo.ItemRarity);
-	FText ItemType = EnumToText(ItemInfo.ItemType);
+	UTexture2D* ItemImage = ItemInfo->ItemAssetData.Icon.LoadSynchronous();
+	FText ItemName = ItemInfo->ItemTextData.Name;
+	FText ItemDescription = ItemInfo->ItemTextData.Description;
+	FText ItemRarity = EnumToText(ItemInfo->ItemRarity);
+	FText ItemType = EnumToText(ItemInfo->ItemType);
 
 	if (!ItemInspector) return;
 	
@@ -258,7 +283,7 @@ void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
 
 void UInventoryHUD::CreateDragDropSetup()
 {
-	if (!PlayerInventory || !DragSlotClass || !DragDropClass) return;
+	if (!DragSlotClass || !DragDropClass) return;
 	
 	DragVisualWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
 	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
@@ -267,7 +292,7 @@ void UInventoryHUD::CreateDragDropSetup()
 void UInventoryHUD::CreateContextMenu()
 {
 	
-	if (!ContextMenuWidget) return;
+	if (!ContextMenuWidget || !ContextMenuClass) return;
 	
 	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
 	ContextMenuWidget->OnDropClicked.BindUObject(PlayerInventory, &UInventoryComponent::RemoveItem);
@@ -305,7 +330,7 @@ void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int3
 
 void UInventoryHUD::FilterInventory(EItemType FilterType)
 {
-	if (!InventoryGridPanel || InventorySlots.Num() <= 0 || !PlayerInventory) return;
+	if (!InventoryGridPanel || InventorySlots.Num() <= 0) return;
 
 	//create an index to any visible slot that will be used to reorganize the slot position on grid
 	int32 VisibleSlotIndex = 0;
@@ -314,11 +339,11 @@ void UInventoryHUD::FilterInventory(EItemType FilterType)
 	{
 		UInv_ItemSlot* SlotToFilter = InventorySlots[Index];
 		
-		if (!SlotToFilter || !PlayerInventory->Inventory.IsValidIndex(Index)) continue;
+		if (!SlotToFilter || !PlayerInventory->IsValidSlot(Index)) continue;
 
-		const FItemData& Item = PlayerInventory->Inventory[Index];
+		const FItemData* Item = PlayerInventory->GetItemAt(Index);
 		
-		const bool bShouldBeVisible = (FilterType == EItemType::None || Item.ItemType == FilterType);
+		const bool bShouldBeVisible = (FilterType == EItemType::None || Item->ItemType == FilterType);
 		
 		if (bShouldBeVisible)
 		{

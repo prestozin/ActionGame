@@ -1,14 +1,5 @@
 #pragma once
 
-UENUM()
-enum class EHUDUpdates : uint8
-{
-	Create	UMETA(DisplayName = "Create"),
-	Insert  UMETA(DisplayName = "Insert"),
-	Remove  UMETA(DisplayName = "Remove"),
-	Existing   UMETA(DisplayName = "Existing")
-};
-
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Interfaces/Inv_InteractionInterface.h"
@@ -27,6 +18,7 @@ class UInv_ItemSlot;
 class UInv_DragDrop;
 class UInv_DropZone;
 class UInv_SlotContextMenu;
+enum class EInventoryUpdate : uint8;
 
 #pragma endregion
 
@@ -111,7 +103,11 @@ private:
 #pragma endregion
 
 #pragma region InventorySetup
-
+	
+	// ================================
+	// =       PROPERTIES           =
+	// ================================
+	
 	UPROPERTY()
 	UInventoryComponent* PlayerInventory;
 	
@@ -123,6 +119,13 @@ private:
 	
 	UPROPERTY()
 	EItemType InventoryFilter = EItemType::None;
+
+	UPROPERTY()
+	TArray<UInv_ItemSlot*> InventorySlots;
+	
+	// ================================
+	// =       FUNCTIONS           =
+	// ================================
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void FilterInventory(EItemType FilterType);
@@ -137,13 +140,13 @@ private:
 
 #pragma region SlotsSection
 	
-	void CreateSlot(TArray<int32> IndexesToUpdate);
+	void CreateSlot(int32 IndexToUpdate);
     
 	void InsertSlot(TArray<int32> IndexesToUpdate);
     	
-	void RemoveSlot(TArray<int32> IndexesToUpdate);
+	void RemoveSlot(int32 IndexToRemove);
 
-	void UpdateExistingSlot(TArray<int32> IndexesToUpdate);
+	void UpdateExistingSlot(int32 IndexToUpdate);
 
 	FIntPoint GetGridPosition(int32 Index) const;
 
@@ -181,16 +184,6 @@ private:
 public:
 	
 	// ================================
-	// =       PROPERTIES          =
-	// ================================
-	
-	UPROPERTY()
-	TArray<UInv_ItemSlot*> InventorySlots;
-	
-	UPROPERTY()
-	bool bInventoryOpen;
-
-	// ================================
 	// =       FUNCTIONS           =
 	// ================================
 	
@@ -198,38 +191,8 @@ public:
 		
 	UInv_ItemInteractor* GetInteractWidget() const { return InteractWidget; }
 
-	void SetPlayerInventory(UInventoryComponent* Inventory);
-	
-	// ================================
-	// =        TEMPLATES           =
-	// ================================
+	void InitializeHUD(UInventoryComponent* Inventory);
 
-	template<typename... Indexes>
-	void UpdateSlots(EHUDUpdates UpdateType, Indexes... ModifiedIndexes)
-	{
-		TArray<int32> IndexesToUpdate = { ModifiedIndexes... };
-
-		if (!PlayerInventory) return;
-		
-		switch (UpdateType)
-		{
-		case EHUDUpdates::Create:
-			CreateSlot(IndexesToUpdate);
-			break;
-        
-		case EHUDUpdates::Remove:
-			RemoveSlot(IndexesToUpdate);
-			break;
-        
-		case EHUDUpdates::Insert:
-			InsertSlot(IndexesToUpdate);
-			break;
-
-		case EHUDUpdates::Existing:
-			UpdateExistingSlot(IndexesToUpdate);
-			break;
-		}
-		UpdateIndexes();
-	}
+	void HandleInventoryUpdate(EInventoryUpdate UpdateType, const TArray<int32>& ModifiedIndexes);
 	
 };

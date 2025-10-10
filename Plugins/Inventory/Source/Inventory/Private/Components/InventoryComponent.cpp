@@ -1,6 +1,5 @@
 
 #include "Components/InventoryComponent.h"
-#include "Widgets/HUD/InventoryHUD.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
 
@@ -23,21 +22,6 @@ void UInventoryComponent::BeginPlay()
 void UInventoryComponent::CreateDefaults()
 {
     	OwningController = GetWorld()->GetFirstPlayerController();
-		CreateHUDWidget();
-}
-
-void UInventoryComponent::CreateHUDWidget()
-{
-	if (OwningController.IsValid())
-	{
-		InventoryHUD = CreateWidget<UInventoryHUD>(OwningController.Get(),HUDWidgetClass);
-		
-		if (!InventoryHUD) return;
-		
-		InventoryHUD->SetPlayerInventory(this);
-		InventoryHUD->AddToViewport();
-		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
-	}
 }
 
 #pragma endregion
@@ -71,7 +55,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	{
 		ItemToAdd.ItemNumericData.Quantity = Quantity;
 		int32 ItemIndex = Inventory.Add(ItemToAdd);
-		UpdateInventorySlot(EInventoryUpdateType::Create, ItemIndex);
+		UpdateInventory(EInventoryUpdate::Create, ItemIndex);
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
 }
@@ -92,7 +76,7 @@ void UInventoryComponent::SplitItem(int32 IndexToSplit, int32 QuantityToSplit)
 	int32 IndexToInsert =  IndexToSplit + 1;
 	Inventory.Insert(NewStack, IndexToInsert);
 
-	UpdateInventorySlot(EInventoryUpdateType::Insert, IndexToSplit, IndexToInsert);
+	UpdateInventory(EInventoryUpdate::Insert, IndexToSplit, IndexToInsert);
 }
 
 void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
@@ -108,7 +92,7 @@ void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 	}
 		
 	Inventory.Swap(DraggedIndex, DestinationIndex);
-	UpdateInventorySlot(EInventoryUpdateType::Swap, DraggedIndex, DestinationIndex);
+	UpdateInventory(EInventoryUpdate::Update, DraggedIndex, DestinationIndex);
 }
 
 void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract)
@@ -128,7 +112,7 @@ void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubt
 	else if (QuantityToSubtract < Item.ItemNumericData.Quantity && QuantityToSubtract > 0)
 	{
 		Item.ItemNumericData.Quantity -= QuantityToSubtract;
-		UpdateInventorySlot(EInventoryUpdateType::Existing, SlotIndex);
+		UpdateInventory(EInventoryUpdate::Update, SlotIndex);
 		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToSubtract, ActorOwner->GetActorLocation(),ActorOwner);
 	}
 }
@@ -146,9 +130,8 @@ void UInventoryComponent::RemoveItem(int32 Index)
 	
 	AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
 	Inventory.RemoveAt(Index);
-	UpdateInventorySlot(EInventoryUpdateType::Remove, Index);
+	UpdateInventory(EInventoryUpdate::Remove, Index);
 }
-
 
 void UInventoryComponent::StackOnAdd(const FItemData* Item)
 {
@@ -170,7 +153,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 				ExistingItem.ItemNumericData.Quantity += AmountToAdd;
 				ItemToStack.ItemNumericData.Quantity -= AmountToAdd;
 
-				InventoryHUD->UpdateSlots(EHUDUpdates::Existing, ItemIndex);
+				UpdateInventory(EInventoryUpdate::Update, ItemIndex);
 			}
 		}
 	}
@@ -183,7 +166,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 		NewStackSlot.ItemNumericData.Quantity = NewStack;
 
 		int32 SlotIndex = Inventory.Add(NewStackSlot);
-		UpdateInventorySlot(EInventoryUpdateType::Create, SlotIndex);
+		UpdateInventory(EInventoryUpdate::Create, SlotIndex);
 
 		ItemToStack.ItemNumericData.Quantity -= NewStack;
 	}
@@ -210,94 +193,22 @@ void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex
 		if (DraggedSlot.ItemNumericData.Quantity <= 0)
 		{
 			Inventory.RemoveAt(DraggedIndex);
-			UpdateInventorySlot(EInventoryUpdateType::Remove, DraggedIndex);
+			UpdateInventory(EInventoryUpdate::Remove, DraggedIndex);
 		}
-		UpdateInventorySlot(EInventoryUpdateType::Swap, DestinationIndex, DraggedIndex);
+		UpdateInventory(EInventoryUpdate::Update, DestinationIndex, DraggedIndex);
 	}
 }
-
 
 #pragma endregion
 
 #pragma region UpdateSection
 
 template<typename... Indexes>	//create a list called indexes, that accept various indexes
-void UInventoryComponent::UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes)
+void UInventoryComponent::UpdateInventory(EInventoryUpdate UpdateType, Indexes... ModifiedIndexes)
 {
-	if (!InventoryHUD) return;
-	
 	TArray<int32> IndexesToUpdate = { ModifiedIndexes...};
 	
-	switch(UpdateType)
-	{
-	case
-		EInventoryUpdateType::Create:
-		UpdateOnAdd(IndexesToUpdate);
-		break;
-		
-	case
-	EInventoryUpdateType::Insert:
-		UpdateOnSplit(IndexesToUpdate);
-		break;
-
-	case
-	EInventoryUpdateType::Remove:
-		UpdateOnRemove(IndexesToUpdate);
-		break;
-		
-	case
-		EInventoryUpdateType::Swap:
-		UpdateOnSwap(IndexesToUpdate);
-		break;
-		
-	case
-		EInventoryUpdateType::Existing:
-		InventoryHUD->UpdateSlots(EHUDUpdates::Existing, IndexesToUpdate);
-		break;
-	}
-}
-
-void UInventoryComponent::UpdateOnAdd(const TArray<int32>& IndexesToUpdate)
-{
-	for (int32 Index : IndexesToUpdate)
-	{
-		int32 IndexToAdd = Index;
-		if (Inventory.IsValidIndex(IndexToAdd) && !InventoryHUD->InventorySlots.IsValidIndex(IndexToAdd))
-		{
-			InventoryHUD->UpdateSlots(EHUDUpdates::Create, IndexToAdd);
-		}
-	}
-}
-
-void UInventoryComponent::UpdateOnSwap(const TArray<int32>& IndexesToUpdate)
-{
-	for (int32 Index : IndexesToUpdate)
-	{
-		InventoryHUD->UpdateSlots(EHUDUpdates::Existing, Index);
-	}
-}
-
-void UInventoryComponent::UpdateOnSplit(const TArray<int32>& IndexesToUpdate)
-{
-	if (IndexesToUpdate.Num() < 2) return;
-	
-	int32 IndexToInsert = FMath::Max(IndexesToUpdate[0], IndexesToUpdate[1]);
-		
-	if (!Inventory.IsValidIndex(IndexToInsert)) return;
-	
-	InventoryHUD->UpdateSlots(EHUDUpdates::Insert, IndexesToUpdate);
-}
-
-void UInventoryComponent::UpdateOnRemove(const TArray<int32>& IndexesToUpdate)
-{
-	//remove in ascending order to make sure that the biggest index is removed first
-	for (int32 Index = IndexesToUpdate.Num() -1; Index >= 0; --Index)  
-	{
-		int32 IndexToRemove = IndexesToUpdate[Index];
-		if (!InventoryHUD->InventorySlots.IsValidIndex(IndexToRemove)) return;
-
-		InventoryHUD->UpdateSlots(EHUDUpdates::Remove, IndexToRemove);
-	}
+	OnInventoryChanged.Broadcast(UpdateType, IndexesToUpdate);
 }
 
 #pragma endregion

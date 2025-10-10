@@ -47,24 +47,23 @@ void APlayerCharacter::BeginPlay()
 
 	//get player controller
 	PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController) return;
 	
 	//widgets
-	InventoryHUD = PlayerInventory->InventoryHUD;
-
-	if (InventoryHUD->GetInteractWidget())
+	if (HUDClass)
 	{
-		InteractWidget = InventoryHUD->GetInteractWidget();
+		InventoryHUD = CreateWidget<UInventoryHUD>(PlayerController,HUDClass);
+		if (!InventoryHUD) return;
+		InventoryHUD->AddToViewport();
+		InventoryHUD->InitializeHUD(PlayerInventory);
+		
 	}
 	
-	//Add input mapping context
-	if (PlayerController)
+	//Get local player subsystem
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 	{
-			//Get local player subsystem
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-				//add input context
-			Subsystem->AddMappingContext(MappingContext, 0);
-		}
+		//add input context
+		Subsystem->AddMappingContext(MappingContext, 0);
 	}
 }
 

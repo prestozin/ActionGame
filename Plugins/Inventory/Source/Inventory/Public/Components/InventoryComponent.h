@@ -1,13 +1,12 @@
 #pragma once
 
 UENUM()
-enum class EInventoryUpdateType : uint8
+enum class EInventoryUpdate : uint8
 {
 	Create		UMETA(DisplayName = "Add"),
 	Insert  UMETA(DisplayName = "Insert"),
 	Remove  UMETA(DisplayName = "Remove"),
-	Swap    UMETA(DisplayName = "Swap"),
-	Existing    UMETA(DisplayName = "Existing"),
+	Update    UMETA(DisplayName = "Update"),
 };
 
 #include "CoreMinimal.h"
@@ -16,10 +15,13 @@ enum class EInventoryUpdateType : uint8
 #include "Interfaces/Inv_InteractionInterface.h"
 #include "InventoryComponent.generated.h"
 
+#pragma region Delegates
 
-class UInventoryHUD;
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, EInventoryUpdate /*update type*/, const TArray<int32>& /*index*/)
+
+#pragma endregion
+
 class AInv_MasterItem;
-
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InteractionInterface
@@ -33,27 +35,46 @@ protected:
 
 	UInventoryComponent(); //Constructor
 	
+private:
+	
+	// ================================
+	// =        PROPERTIES          =
+	// =================================
+	
+	UPROPERTY(VisibleAnywhere)
+	TArray<FItemData> Inventory;
+	
+	TWeakObjectPtr<APlayerController> OwningController;
+	
+	UPROPERTY()
+	TSubclassOf<AInv_MasterItem> ItemClass;
+	
+	// ================================
+	// =        FUNCTIONS            =
+	// =================================
+
+	void CreateDefaults();
+	
+	void StackOnAdd(const FItemData* Item);
+
+	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
+	
+	// ================================
+	// =        TEMPLATES            =
+	// =================================
+
+	template<typename... Indexes>
+	void UpdateInventory(EInventoryUpdate UpdateType, Indexes... ModifiedIndexes);
+		
 public:
 	
 	// ================================
 	// =        PROPERTIES            =
 	// ================================
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "HUD Widget")
-	TSubclassOf<UInventoryHUD> HUDWidgetClass;
-	
 	UPROPERTY(EditAnywhere, Category = "Item Data")
 	UDataTable* DataTable = nullptr;
-
-	UPROPERTY(VisibleAnywhere)
-	TArray<FItemData> Inventory;
 	
-	UPROPERTY()
-	TSubclassOf<AInv_MasterItem> ItemClass;
-	
-	UPROPERTY()
-	TObjectPtr<UInventoryHUD> InventoryHUD;
-		
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
@@ -67,39 +88,17 @@ public:
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
 
 	void DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract);
-	
-private:
-	
-	// ================================
-	// =        PROPERTIES          =
-	// =================================
-	
-	TWeakObjectPtr<APlayerController> OwningController;
-	
-	// ================================
-	// =        FUNCTIONS            =
-	// =================================
 
-	void CreateHUDWidget();
+	int32 GetInventorySize() const{ return Inventory.Num(); }
 
-	void CreateDefaults();
+	bool IsValidSlot(int32 Index) const { return Inventory.IsValidIndex(Index); }
 	
-	void StackOnAdd(const FItemData* Item);
-
-	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
-	
-	void UpdateOnSwap (const TArray<int32>& IndexesToUpdate);
-
-	void UpdateOnAdd(const TArray<int32>& IndexesToUpdate);
-
-	void UpdateOnSplit(const TArray<int32>& IndexesToUpdate);
-
-	void UpdateOnRemove(const TArray<int32>& IndexesToUpdate);
+	const FItemData* GetItemAt(int32 Index) const{ return Inventory.IsValidIndex(Index) ? &Inventory[Index] : nullptr;}
 
 	// ================================
-	// =        TEMPLATES            =
+	// =        DELEGATES           =
 	// =================================
 
-	template<typename... Indexes>
-	void UpdateInventorySlot(EInventoryUpdateType UpdateType, Indexes... ModifiedIndexes);
+	FOnInventoryChanged OnInventoryChanged;
+
 };

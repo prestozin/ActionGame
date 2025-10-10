@@ -40,8 +40,7 @@ public:
 	
 	UPROPERTY(EditAnywhere)
 	UInventoryComponent* PlayerInventory;
-	
-	
+
 protected:
 
 	// ================================
@@ -104,6 +103,9 @@ private:
 
 	UPROPERTY()
 	UInv_ItemInteractor* InteractWidget;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UInventoryHUD> HUDClass;
 	
 	// ================================
 	// =        FUNCTIONS            =
