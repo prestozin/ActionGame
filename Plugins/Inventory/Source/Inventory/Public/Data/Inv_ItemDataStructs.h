@@ -12,7 +12,8 @@ enum class EItemRarity : uint8
 	Common UMETA( DisplayName = "Common" ),
 	Rare UMETA( DisplayName = "Rare" ),
 	Epic UMETA( DisplayName = "Epic" ),
-	Legendary UMETA( DisplayName = "Legendary" )
+	Legendary UMETA( DisplayName = "Legendary" ),
+	None UMETA( DisplayName = "None" ),
 };
 
 UENUM(BlueprintType)

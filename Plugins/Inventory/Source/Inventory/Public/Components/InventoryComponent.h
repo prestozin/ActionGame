@@ -1,34 +1,22 @@
 #pragma once
 
-UENUM()
-enum class EInventoryUpdate : uint8
-{
-	Create		UMETA(DisplayName = "Add"),
-	Insert  UMETA(DisplayName = "Insert"),
-	Remove  UMETA(DisplayName = "Remove"),
-	Update    UMETA(DisplayName = "Update"),
-};
-
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/Inv_InventoryTypes.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Interfaces/Inv_InteractionInterface.h"
+#include "Interfaces/Inv_InventoryListener.h"
+#include "Interfaces/Inv_InventorySetup.h"
+#include "Interfaces/Inv_InventoryActions.h"
 #include "InventoryComponent.generated.h"
-
-#pragma region Delegates
-
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryChanged, EInventoryUpdate /*update type*/, const TArray<int32>& /*index*/)
-
-#pragma endregion
 
 class AInv_MasterItem;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InteractionInterface
+class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InventoryListener, public IInv_InventorySetup, public IInv_InventoryActions, public IInv_InteractionInterface
 {
 	GENERATED_BODY()
 
-	
 protected:
 	
 	virtual void BeginPlay() override;
@@ -40,6 +28,9 @@ private:
 	// ================================
 	// =        PROPERTIES          =
 	// =================================
+
+	UPROPERTY()
+	TArray<TScriptInterface<IInv_InventoryListener>> InventoryListeners;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
@@ -52,21 +43,26 @@ private:
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
+	
+	void BroadcastInventoryChanges(EInventoryUpdateType UpdateType, const TArray<int32>& ModifiedIndexes);
+	
+	virtual void RegisterListener_Implementation(UObject* ObjectListener) override;
+			
+	void SplitItem(int32 IndexToSplit, int32 QuantityToSplit);
 
-	void CreateDefaults();
+	void RemoveItem(int32 Index);
+	
+	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
+
+	void DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract);
 	
 	void StackOnAdd(const FItemData* Item);
 
 	void StackOnSwap (int32 DraggedIndex, int32 DestinationIndex);
-	
-	// ================================
-	// =        TEMPLATES            =
-	// =================================
-
-	template<typename... Indexes>
-	void UpdateInventory(EInventoryUpdate UpdateType, Indexes... ModifiedIndexes);
 		
 public:
+	
+	void AddItem(FName RowName, int32 Quantity);
 	
 	// ================================
 	// =        PROPERTIES            =
@@ -76,29 +72,42 @@ public:
 	UDataTable* DataTable = nullptr;
 	
 	// ================================
-	// =        FUNCTIONS            =
+	// =     INTERFACE FUNCTIONS      =
 	// =================================
-
-	void AddItem(FName RowName, int32 Quantity);
 	
-	void SplitItem(int32 IndexToSplit, int32 QuantityToSplit);
+	virtual int32 GetSlotQuantity_Implementation (int32 Index) override;
 
-	void RemoveItem(int32 Index);
+	virtual int32 GetInventorySize_Implementation() override;
+
+	virtual UTexture2D* GetSlotIcon_Implementation(int32 Index) override;
+
+	virtual FText GetSlotName_Implementation(int32 Index) override;
+
+	virtual FText GetSlotDescription_Implementation(int32 Index) override;
+
+	virtual EItemType GetSlotType_Implementation(int32 Index) override;
+
+	virtual EItemRarity GetSlotRarity_Implementation(int32 Index) override;
+
+	virtual void ISplitItem_Implementation(int32 IndexToSplit, int32 QuantityToSplit) override;
+
+	virtual void IRemoveItem_Implementation(int32 Index) override;
 	
-	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
+	virtual void ISwapItem_Implementation(int32 SourceIndex, int32 DestinationIndex) override;
 
-	void DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract);
+	virtual void IDropItemQuantity_Implementation(int32 SlotIndex, int32 QuantityToSubtract) override;
 
-	int32 GetInventorySize() const{ return Inventory.Num(); }
+	template <typename InterfaceType>
+	static TScriptInterface<InterfaceType> MakeInterface(UObject* Object)
+	{
+		TScriptInterface<InterfaceType> Interface;
+		if (!Object) return Interface;
 
-	bool IsValidSlot(int32 Index) const { return Inventory.IsValidIndex(Index); }
-	
-	const FItemData* GetItemAt(int32 Index) const{ return Inventory.IsValidIndex(Index) ? &Inventory[Index] : nullptr;}
-
-	// ================================
-	// =        DELEGATES           =
-	// =================================
-
-	FOnInventoryChanged OnInventoryChanged;
-
+		if (Object->GetClass()->ImplementsInterface(InterfaceType::UClassType::StaticClass()))
+		{
+			Interface.SetObject(Object);
+			Interface.SetInterface(Cast<InterfaceType>(Object));
+		}
+		return Interface;
+	}
 };

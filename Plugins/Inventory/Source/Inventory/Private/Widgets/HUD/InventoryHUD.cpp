@@ -1,9 +1,9 @@
 
 #include "Widgets/HUD/InventoryHUD.h"
 
-#include "Components/InventoryComponent.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
+
 
 #include "Widgets/DragDrop/Inv_OnDragSlot.h"
 #include "Widgets/SplitStack/Inv_SplitStack.h"
@@ -13,6 +13,9 @@
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
 #include "Widgets/Item/ContextMenu/Inv_SlotContextMenu.h"
+#include "Interfaces/Inv_InventoryActions.h"
+#include "Interfaces/Inv_InventorySetup.h"
+#include "Interfaces/Inv_InventoryListener.h"
 
 
 
@@ -22,7 +25,28 @@ void UInventoryHUD::NativeConstruct()
 	CreateDefaultWidgets();
 }
 
+void UInventoryHUD::InitializeHUD(UObject* IntInventorySource)
+{
+	InventorySlots.Empty();
+	InventoryFilter = EItemType::None;
+
+	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_InventorySetup::StaticClass()))
+	{
+		InventorySource = IntInventorySource;
+		
+		if (IntInventorySource->GetClass()->ImplementsInterface(UInv_InventoryActions::StaticClass()))
+		{
+			Execute_RegisterListener(IntInventorySource, this);
+		}
+	}
+	
+	if (!DropZoneWidget) return;
+	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	SetVisibility(ESlateVisibility::Collapsed);
+}
+
 #pragma region InventoryUpdates
+
 void UInventoryHUD::UpdateIndexes()
 {
 	if (!(InventorySlots.Num() > 0)) return;
@@ -36,102 +60,55 @@ void UInventoryHUD::UpdateIndexes()
 	}
 }
 
-void UInventoryHUD::InitializeHUD(UInventoryComponent* Inventory)
+void UInventoryHUD::UpdateExistingSlot(TArray<int32> IndexToUpdate)
 {
-	if (!Inventory) return;
-	PlayerInventory = Inventory;
-	InventorySlots.Empty();
-	InventoryFilter = EItemType::None;
-	if (!DropZoneWidget) return;
-	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
-	PlayerInventory->OnInventoryChanged.AddUObject(this, &UInventoryHUD::HandleInventoryUpdate);
-	SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UInventoryHUD::HandleInventoryUpdate(EInventoryUpdate UpdateType, const TArray<int32>& ModifiedIndexes)
-{
-	switch (UpdateType)
+	for (int32 Index : IndexToUpdate)
 	{
+		if (!InventorySlots.IsValidIndex(Index)) return;
 		
-	case EInventoryUpdate::Create:
-		for (int32 IndexToUpdate : ModifiedIndexes)
+		UInv_ItemSlot* SlotToUpdate = InventorySlots[Index];
+		int32 SlotQuantity = Execute_GetSlotQuantity(InventorySource.GetObject(), Index);
+		if ( SlotQuantity <= 0)
 		{
-			CreateSlot(IndexToUpdate);
-		}
-		break;
-		
-	case EInventoryUpdate::Insert:
-		InsertSlot(ModifiedIndexes);
-		break;
-
-	case EInventoryUpdate::Remove:
-		for (int32 IndexToRemove : ModifiedIndexes)
+			if (SlotToUpdate && InventoryGridPanel)
+			{ RemoveSlot({Index}); } 
+		} 
+		else if (SlotToUpdate) 
 		{
-			RemoveSlot(IndexToRemove);
+			UTexture2D* Icon = Execute_GetSlotIcon(InventorySource.GetObject(), Index);
+			int32 Quantity = Execute_GetSlotQuantity(InventorySource.GetObject(), Index);
+			SlotToUpdate->SetSlotInfo(Icon, Quantity, Index);
 		}
-		break;
-
-	case EInventoryUpdate::Update:
-		for (int32 IndexToUpdate : ModifiedIndexes)
-		{
-			UpdateExistingSlot(IndexToUpdate);
-		}
-		break;
-		
-		default: break;
-	}
-	UpdateIndexes();
-}
-
-void UInventoryHUD::UpdateExistingSlot(int32 IndexToUpdate)
-{
-	if (!PlayerInventory->IsValidSlot(IndexToUpdate) || !InventorySlots.IsValidIndex(IndexToUpdate)) return;
-		
-	UInv_ItemSlot* SlotToUpdate = InventorySlots[IndexToUpdate];
-		
-	const FItemData* Item = PlayerInventory->GetItemAt(IndexToUpdate);
-		
-	if (Item->ItemNumericData.Quantity <= 0)
-	{
-		if (SlotToUpdate && InventoryGridPanel)
-		{ RemoveSlot({IndexToUpdate}); } 
-	} 
-	else if (SlotToUpdate) 
-	{
-		UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();
-		int32 Quantity = Item->ItemNumericData.Quantity;
-		SlotToUpdate->SetSlotInfo(Icon, Quantity, IndexToUpdate);
 	}
 } 
 
-
-void UInventoryHUD::CreateSlot(int32 IndexToUpdate)
+void UInventoryHUD::CreateSlot(TArray<int32> IndexToUpdate)
 {
-		if (!PlayerInventory->IsValidSlot(IndexToUpdate)) return;
-		int32 IndexToCreate = IndexToUpdate;
-		
-		InventorySlots.SetNum(PlayerInventory->GetInventorySize());
-		
-		if (InventorySlots.IsValidIndex(IndexToCreate) && InventorySlots[IndexToCreate] != nullptr)
+	int32 InventorySize = Execute_GetInventorySize(InventorySource->_getUObject());
+	InventorySlots.SetNum(InventorySize);
+	
+	for (int32 Index : IndexToUpdate)
+	{
+		if (InventorySlots.IsValidIndex(Index) && InventorySlots[Index] != nullptr)
 		{
-			UpdateExistingSlot({ IndexToCreate });
+			UpdateExistingSlot({ Index });
 		} 
 		else
 		{
-			const FItemData* Item = PlayerInventory->GetItemAt(IndexToUpdate);
-			UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();;
-			int32 Quantity = Item->ItemNumericData.Quantity;
+			UTexture2D* Icon = Execute_GetSlotIcon(InventorySource.GetObject(), Index);
+			int32 Quantity = Execute_GetSlotQuantity(InventorySource.GetObject(), Index);
 			                        				       
-			UInv_ItemSlot* NewSlot = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
+			UInv_ItemSlot* NewSlot = WidgetFactory(ItemSlotClass);
                 			
 			if (!NewSlot && !DragVisualWidget) return;
 
-			SetSlotSetup(NewSlot, Icon, Quantity, IndexToCreate);
+			SetSlotSetup(NewSlot, Icon, Quantity, Index);
                 				
-			InventorySlots[IndexToCreate] = NewSlot;
+			InventorySlots[Index] = NewSlot;
 				
 			InventoryGridPanel->AddChildToGrid(NewSlot);
 		}
+	}
 	FilterInventory(InventoryFilter);
 }
 
@@ -142,11 +119,10 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	int32 ExistingIndex = FMath::Min(IndexesToUpdate[0], IndexesToUpdate[1]);
 	int32 IndexToInsert = FMath::Max(IndexesToUpdate[0], IndexesToUpdate[1]);
 	
-	const FItemData* Item = PlayerInventory->GetItemAt(IndexToInsert);
-	UTexture2D* Icon = Item->ItemAssetData.Icon.LoadSynchronous();
-	int32 Quantity = Item->ItemNumericData.Quantity;
-
-	UInv_ItemSlot* SlotToInsert  = CreateWidget<UInv_ItemSlot>(GetWorld(), ItemSlotClass);
+	UTexture2D* Icon = Execute_GetSlotIcon(InventorySource.GetObject(), IndexToInsert);
+	int32 Quantity =Execute_GetSlotQuantity(InventorySource.GetObject(), IndexToInsert);
+	
+	UInv_ItemSlot* SlotToInsert  = WidgetFactory(ItemSlotClass);
 
 	if (!SlotToInsert || !DragVisualWidget || !InventoryGridPanel) return;
 
@@ -161,23 +137,25 @@ void UInventoryHUD::InsertSlot(TArray<int32> IndexesToUpdate)
 	FilterInventory(InventoryFilter);
 }
 
-void UInventoryHUD::RemoveSlot(int32 IndexToRemove)
+void UInventoryHUD::RemoveSlot(TArray<int32> IndexToRemove)
 {
-	if (!InventorySlots.IsValidIndex(IndexToRemove)) return;
+	for (int32 Index : IndexToRemove)
+	{
+		if (!InventorySlots.IsValidIndex(Index)) return;
 		
-	UInv_ItemSlot* SlotToRemove = InventorySlots[IndexToRemove];
+		UInv_ItemSlot* SlotToRemove = InventorySlots[Index];
 			
-	if (!SlotToRemove || !InventoryGridPanel) return;
+		if (!SlotToRemove || !InventoryGridPanel) return;
 		
-	InventoryGridPanel->RemoveChild(SlotToRemove);
-	InventorySlots.RemoveAt(IndexToRemove);
-
+		InventoryGridPanel->RemoveChild(SlotToRemove);
+		InventorySlots.RemoveAt(Index);
+	}
 	FilterInventory(InventoryFilter);
 }
 
 void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const
 {
-	if (!PlayerInventory || !InOperation) return;
+	if (!InOperation) return;
 
 	if (UInv_DragDrop* DragOperation = Cast<UInv_DragDrop>(InOperation))
 	{
@@ -185,11 +163,17 @@ void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 Destina
 		
 		if (DestinationIndex != INDEX_NONE) //destination index will only be valid if trying to swap item
 		{
-			PlayerInventory->SwapItem(DraggedIndex, DestinationIndex);
+			if (InventorySource)
+			{
+				Execute_ISwapItem(InventorySource.GetObject(), DraggedIndex, DestinationIndex);
+			}
 		}
 		else //if destination index is not valid, then it's trying to remove the item
 		{
-			PlayerInventory->RemoveItem(DraggedIndex);
+			if (InventorySource)
+			{
+				Execute_IRemoveItem(InventorySource.GetObject(), DraggedIndex);
+			}
 		}
 	}
 }
@@ -209,7 +193,7 @@ void UInventoryHUD::CreateDefaultWidgets()
 void UInventoryHUD::CreateInteractWidget()
 {
 	if (!InteractWidgetClass) return;
-	InteractWidget = CreateWidget<UInv_ItemInteractor>(GetWorld(), InteractWidgetClass);
+	InteractWidget = WidgetFactory(InteractWidgetClass);
 	
 	if (!InteractWidget) return;
 	
@@ -226,16 +210,20 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 		SplitStackWidget = nullptr;
 	}
 	
-	SplitStackWidget = CreateWidget<UInv_SplitStack>(GetWorld(), SplitStackClass);
+	SplitStackWidget = WidgetFactory(SplitStackClass);
 	
 	if (!SplitStackWidget) return;
 	
-	const FItemData* Item = PlayerInventory->GetItemAt(Index);
-	
 	SplitStackWidget->SlotIndex = Index;
-	SplitStackWidget->MaxStack = Item->ItemNumericData.Quantity;
-	SplitStackWidget->OnSplitConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::SplitItem);
-	SplitStackWidget->OnDropConfirmed.BindUObject(PlayerInventory, &UInventoryComponent::DropItemQuantity);
+	SplitStackWidget->MaxStack = Execute_GetSlotQuantity(InventorySource.GetObject(), Index);
+	SplitStackWidget->OnSplitConfirmed.BindLambda([this](int32 Index, int32 Quantity)
+	{
+		Execute_ISplitItem(InventorySource->_getUObject(), Index, Quantity);
+	});
+	SplitStackWidget->OnDropConfirmed.BindLambda([this](int32 Index, int32 Quantity)
+	{
+		Execute_IDropItemQuantity(InventorySource->_getUObject(), Index, Quantity);
+	});
 	SplitStackWidget->AddToViewport();
 }
 
@@ -257,7 +245,7 @@ void UInventoryHUD::CreateItemInspectorWidget()
 {
 	if (!ItemInspectorClass) return;
 	
-	ItemInspector = CreateWidget<UInv_ItemInspector>(GetWorld(), ItemInspectorClass);
+	ItemInspector = WidgetFactory(ItemInspectorClass);
 	
 	if (!ItemInspector) return;
 	
@@ -267,13 +255,11 @@ void UInventoryHUD::CreateItemInspectorWidget()
 
 void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
 {
-	const FItemData* ItemInfo = PlayerInventory->GetItemAt(ItemIndex);
-
-	UTexture2D* ItemImage = ItemInfo->ItemAssetData.Icon.LoadSynchronous();
-	FText ItemName = ItemInfo->ItemTextData.Name;
-	FText ItemDescription = ItemInfo->ItemTextData.Description;
-	FText ItemRarity = EnumToText(ItemInfo->ItemRarity);
-	FText ItemType = EnumToText(ItemInfo->ItemType);
+	UTexture2D* ItemImage = Execute_GetSlotIcon(InventorySource.GetObject(), ItemIndex);
+	FText ItemName = Execute_GetSlotName(InventorySource.GetObject(), ItemIndex);
+	FText ItemDescription = Execute_GetSlotDescription(InventorySource.GetObject(), ItemIndex);
+	FText ItemRarity = EnumToText(Execute_GetSlotRarity(InventorySource.GetObject(), ItemIndex));
+	FText ItemType = EnumToText(Execute_GetSlotType(InventorySource.GetObject(), ItemIndex));
 
 	if (!ItemInspector) return;
 	
@@ -285,7 +271,7 @@ void UInventoryHUD::CreateDragDropSetup()
 {
 	if (!DragSlotClass || !DragDropClass) return;
 	
-	DragVisualWidget = CreateWidget<UInv_OnDragSlot>(GetWorld(), DragSlotClass);
+	DragVisualWidget = WidgetFactory(DragSlotClass);
 	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
 }
 
@@ -295,7 +281,10 @@ void UInventoryHUD::CreateContextMenu()
 	if (!ContextMenuWidget || !ContextMenuClass) return;
 	
 	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
-	ContextMenuWidget->OnDropClicked.BindUObject(PlayerInventory, &UInventoryComponent::RemoveItem);
+	ContextMenuWidget->OnDropClicked.BindLambda([this](int32 Index)
+	{
+		Execute_IRemoveItem(InventorySource->_getUObject(), Index);
+	});
 }
 
 void UInventoryHUD::SetContextMenuSetup(int32 SlotIndex)
@@ -339,11 +328,10 @@ void UInventoryHUD::FilterInventory(EItemType FilterType)
 	{
 		UInv_ItemSlot* SlotToFilter = InventorySlots[Index];
 		
-		if (!SlotToFilter || !PlayerInventory->IsValidSlot(Index)) continue;
-
-		const FItemData* Item = PlayerInventory->GetItemAt(Index);
+		if (!SlotToFilter) continue;
 		
-		const bool bShouldBeVisible = (FilterType == EItemType::None || Item->ItemType == FilterType);
+		EItemType ItemType = Execute_GetSlotType(InventorySource.GetObject(), Index);
+		const bool bShouldBeVisible = (FilterType == EItemType::None || ItemType == FilterType);
 		
 		if (bShouldBeVisible)
 		{
@@ -366,6 +354,30 @@ void UInventoryHUD::FilterInventory(EItemType FilterType)
 		}
 	}
 	InventoryFilter = FilterType;
+}
+
+void UInventoryHUD::OnInventoryUpdate_Implementation(EInventoryUpdateType UpdateType,const TArray<int32>& ModifiedIndexes)
+{
+	switch (UpdateType)
+	{
+	case
+		EInventoryUpdateType::Create:
+		CreateSlot(ModifiedIndexes);
+		break;
+	case
+		EInventoryUpdateType::Insert:
+		InsertSlot(ModifiedIndexes);
+		break;
+	case
+		EInventoryUpdateType::Remove:
+		RemoveSlot(ModifiedIndexes);
+		break;
+	case
+		EInventoryUpdateType::Update:
+		UpdateExistingSlot(ModifiedIndexes);
+		break;
+	}
+	UpdateIndexes();
 }
 
 bool UInventoryHUD::ToggleHUD()

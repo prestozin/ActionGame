@@ -2,7 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Interfaces/Inv_InteractionInterface.h"
+#include "Interfaces/Inv_InventoryListener.h"
+#include "Interfaces/Inv_InventorySetup.h"
+#include "Interfaces/Inv_InventoryActions.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "InventoryHUD.generated.h"
 
@@ -18,12 +20,11 @@ class UInv_ItemSlot;
 class UInv_DragDrop;
 class UInv_DropZone;
 class UInv_SlotContextMenu;
-enum class EInventoryUpdate : uint8;
 
 #pragma endregion
 
 UCLASS()
-class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_InteractionInterface
+class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_InventoryListener, public IInv_InventorySetup, public IInv_InventoryActions
 {
 	GENERATED_BODY()
 	
@@ -33,9 +34,18 @@ protected:
 	
 private:
 
+	virtual void OnInventoryUpdate_Implementation(EInventoryUpdateType UpdateType,const TArray<int32>& ModifiedIndexes) override;
+	
 	// ================================
 	// =        TEMPLATES           =
 	// ================================
+	
+	template <typename T>
+	T* WidgetFactory(TSubclassOf<T> WidgetClass)
+	{
+		if (!WidgetClass) return nullptr;
+		return CreateWidget<T>(GetWorld(), WidgetClass);
+	}
 	
 	//convert enum to ftext
 	template<typename Enums>
@@ -107,9 +117,7 @@ private:
 	// ================================
 	// =       PROPERTIES           =
 	// ================================
-	
-	UPROPERTY()
-	UInventoryComponent* PlayerInventory;
+	TScriptInterface<IInv_InventorySetup> InventorySource;
 	
 	UPROPERTY(meta = (BindWidget))
 	UGridPanel* InventoryGridPanel;
@@ -140,13 +148,13 @@ private:
 
 #pragma region SlotsSection
 	
-	void CreateSlot(int32 IndexToUpdate);
+	void CreateSlot(TArray<int32> IndexToUpdate);
     
 	void InsertSlot(TArray<int32> IndexesToUpdate);
     	
-	void RemoveSlot(int32 IndexToRemove);
+	void RemoveSlot(TArray<int32> IndexToUpdate);
 
-	void UpdateExistingSlot(int32 IndexToUpdate);
+	void UpdateExistingSlot(TArray<int32> IndexToUpdate);
 
 	FIntPoint GetGridPosition(int32 Index) const;
 
@@ -155,7 +163,7 @@ private:
 #pragma region CreateWidgets
 	
 	void CreateDefaultWidgets();
-
+	
 	void SetInspectorSetup(int32 ItemIndex);
 
 	void OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const;
@@ -182,7 +190,7 @@ private:
 	
 	
 public:
-	
+		
 	// ================================
 	// =       FUNCTIONS           =
 	// ================================
@@ -191,8 +199,6 @@ public:
 		
 	UInv_ItemInteractor* GetInteractWidget() const { return InteractWidget; }
 
-	void InitializeHUD(UInventoryComponent* Inventory);
-
-	void HandleInventoryUpdate(EInventoryUpdate UpdateType, const TArray<int32>& ModifiedIndexes);
-	
+	void InitializeHUD(UObject* IntInventorySource);
+		
 };

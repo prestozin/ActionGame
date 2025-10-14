@@ -2,6 +2,9 @@
 #include "Components/InventoryComponent.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
+#include "Interfaces/Inv_InventoryActions.h"
+#include "Interfaces/Inv_InventorySetup.h"
+#include "Interfaces/Inv_InventoryListener.h"
 
 #pragma region StartSection
 
@@ -14,14 +17,18 @@ UInventoryComponent::UInventoryComponent()
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	//create necessary data
-	CreateDefaults();
+	OwningController = GetWorld()->GetFirstPlayerController();
 }
 
-void UInventoryComponent::CreateDefaults()
+void UInventoryComponent::BroadcastInventoryChanges(EInventoryUpdateType UpdateType, const TArray<int32>& ModifiedIndexes)
 {
-    	OwningController = GetWorld()->GetFirstPlayerController();
+	for (const TScriptInterface<IInv_InventoryListener>& Listener : InventoryListeners)
+	{
+		if (Listener.GetInterface())
+		{
+			Execute_OnInventoryUpdate(Listener.GetObject(), UpdateType, ModifiedIndexes);
+		}
+	}
 }
 
 #pragma endregion
@@ -55,7 +62,7 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	{
 		ItemToAdd.ItemNumericData.Quantity = Quantity;
 		int32 ItemIndex = Inventory.Add(ItemToAdd);
-		UpdateInventory(EInventoryUpdate::Create, ItemIndex);
+		BroadcastInventoryChanges(EInventoryUpdateType::Create,{ItemIndex});
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Item %s adicionado ao inventário!"), *RowName.ToString());
 }
@@ -76,13 +83,13 @@ void UInventoryComponent::SplitItem(int32 IndexToSplit, int32 QuantityToSplit)
 	int32 IndexToInsert =  IndexToSplit + 1;
 	Inventory.Insert(NewStack, IndexToInsert);
 
-	UpdateInventory(EInventoryUpdate::Insert, IndexToSplit, IndexToInsert);
+	BroadcastInventoryChanges(EInventoryUpdateType::Insert,{IndexToInsert, IndexToSplit});
 }
 
 void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 {
 	
-	if (!Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex)) return;
+	if (!Inventory.IsValidIndex(DraggedIndex) || !Inventory.IsValidIndex(DestinationIndex)) return;
 	if (DraggedIndex == DestinationIndex) return;
 	
 	if (Inventory[DraggedIndex].ItemNumericData.IsStackable && Inventory[DestinationIndex].ItemNumericData.IsStackable)
@@ -92,45 +99,7 @@ void UInventoryComponent::SwapItem(int32 DraggedIndex, int32 DestinationIndex)
 	}
 		
 	Inventory.Swap(DraggedIndex, DestinationIndex);
-	UpdateInventory(EInventoryUpdate::Update, DraggedIndex, DestinationIndex);
-}
-
-void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract)
-{
-	if (!Inventory.IsValidIndex(SlotIndex)) return;
-
-	UWorld* World = GetWorld();
-	AActor* ActorOwner = GetOwner();
-	FItemData& Item = Inventory[SlotIndex];
-	
-	if (!World || !ActorOwner || Item.ID.IsNone()) return;
-	
-	if (Item.ItemNumericData.Quantity == QuantityToSubtract)
-	{
-		RemoveItem(SlotIndex);
-	}
-	else if (QuantityToSubtract < Item.ItemNumericData.Quantity && QuantityToSubtract > 0)
-	{
-		Item.ItemNumericData.Quantity -= QuantityToSubtract;
-		UpdateInventory(EInventoryUpdate::Update, SlotIndex);
-		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToSubtract, ActorOwner->GetActorLocation(),ActorOwner);
-	}
-}
-
-void UInventoryComponent::RemoveItem(int32 Index)
-{
-	if (!Inventory.IsValidIndex(Index)) return;
-
-	UWorld* World = GetWorld();
-	AActor* ActorOwner = GetOwner();
-	
-	if (!World || !ActorOwner) return;
-
-	FItemData& ItemToRemove = Inventory[Index];
-	
-	AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
-	Inventory.RemoveAt(Index);
-	UpdateInventory(EInventoryUpdate::Remove, Index);
+	BroadcastInventoryChanges(EInventoryUpdateType::Update,{DraggedIndex, DestinationIndex});
 }
 
 void UInventoryComponent::StackOnAdd(const FItemData* Item)
@@ -153,7 +122,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 				ExistingItem.ItemNumericData.Quantity += AmountToAdd;
 				ItemToStack.ItemNumericData.Quantity -= AmountToAdd;
 
-				UpdateInventory(EInventoryUpdate::Update, ItemIndex);
+				BroadcastInventoryChanges(EInventoryUpdateType::Create,{ItemIndex});
 			}
 		}
 	}
@@ -166,7 +135,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 		NewStackSlot.ItemNumericData.Quantity = NewStack;
 
 		int32 SlotIndex = Inventory.Add(NewStackSlot);
-		UpdateInventory(EInventoryUpdate::Create, SlotIndex);
+		BroadcastInventoryChanges(EInventoryUpdateType::Create,{SlotIndex});
 
 		ItemToStack.ItemNumericData.Quantity -= NewStack;
 	}
@@ -174,7 +143,7 @@ void UInventoryComponent::StackOnAdd(const FItemData* Item)
 
 void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex)
 {
-	if (!Inventory.IsValidIndex(DraggedIndex) && Inventory.IsValidIndex(DestinationIndex)) return;
+	if (!Inventory.IsValidIndex(DraggedIndex) || !Inventory.IsValidIndex(DestinationIndex)) return;
 	
 	FItemData& DraggedSlot = Inventory[DraggedIndex];
 	FItemData& DestinationSlot = Inventory[DestinationIndex];
@@ -193,37 +162,123 @@ void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex
 		if (DraggedSlot.ItemNumericData.Quantity <= 0)
 		{
 			Inventory.RemoveAt(DraggedIndex);
-			UpdateInventory(EInventoryUpdate::Remove, DraggedIndex);
+			BroadcastInventoryChanges(EInventoryUpdateType::Remove,{DraggedIndex});
 		}
-		UpdateInventory(EInventoryUpdate::Update, DestinationIndex, DraggedIndex);
+		BroadcastInventoryChanges(EInventoryUpdateType::Update,{DestinationIndex,DraggedIndex});;
 	}
 }
 
-#pragma endregion
-
-#pragma region UpdateSection
-
-template<typename... Indexes>	//create a list called indexes, that accept various indexes
-void UInventoryComponent::UpdateInventory(EInventoryUpdate UpdateType, Indexes... ModifiedIndexes)
+void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract)
 {
-	TArray<int32> IndexesToUpdate = { ModifiedIndexes...};
+	if (!Inventory.IsValidIndex(SlotIndex)) return;
+
+	UWorld* World = GetWorld();
+	AActor* ActorOwner = GetOwner();
+	FItemData& Item = Inventory[SlotIndex];
 	
-	OnInventoryChanged.Broadcast(UpdateType, IndexesToUpdate);
+	if (!World || !ActorOwner || Item.ID.IsNone()) return;
+	
+	if (Item.ItemNumericData.Quantity == QuantityToSubtract)
+	{
+		RemoveItem(SlotIndex);
+	}
+	else if (QuantityToSubtract < Item.ItemNumericData.Quantity && QuantityToSubtract > 0)
+	{
+		Item.ItemNumericData.Quantity -= QuantityToSubtract;
+		BroadcastInventoryChanges(EInventoryUpdateType::Update,{SlotIndex});
+		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToSubtract, ActorOwner->GetActorLocation(),ActorOwner);
+	}
+}
+
+void UInventoryComponent::RemoveItem(int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return;
+
+	UWorld* World = GetWorld();
+	AActor* ActorOwner = GetOwner();
+	
+	if (!World || !ActorOwner) return;
+
+	FItemData& ItemToRemove = Inventory[Index];
+	
+	AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
+	Inventory.RemoveAt(Index);
+	BroadcastInventoryChanges(EInventoryUpdateType::Remove,{Index});
 }
 
 #pragma endregion
 
+#pragma region InterfaceImplementations
 
+void UInventoryComponent::RegisterListener_Implementation(UObject* ObjectListener)
+{
+	if (!ObjectListener) return;
 
-	
+	auto Listener = MakeInterface<IInv_InventoryListener>(ObjectListener);
+	if (!Listener) return;
 
+	InventoryListeners.Add(Listener); 
+}
 
+int32 UInventoryComponent::GetSlotQuantity_Implementation (int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return 0;
+	return Inventory[Index].ItemNumericData.Quantity;
+}
 
+int32 UInventoryComponent::GetInventorySize_Implementation() 
+{
+	return Inventory.Num();
+}
 
+UTexture2D* UInventoryComponent::GetSlotIcon_Implementation(int32 Index) 
+{
+	if (!Inventory.IsValidIndex(Index)) return nullptr;
+	const FItemData& Item = Inventory[Index];
+	return Item.ItemAssetData.Icon.Get();
+}
 
+FText UInventoryComponent::GetSlotName_Implementation(int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return FText::GetEmpty();
+	return Inventory[Index].ItemTextData.Name;
+}
 
+FText UInventoryComponent::GetSlotDescription_Implementation(int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return FText::GetEmpty();
+	return Inventory[Index].ItemTextData.Description;
+}
 
+EItemType UInventoryComponent::GetSlotType_Implementation(int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return EItemType::None;
+	return Inventory[Index].ItemType;
+}
 
+EItemRarity UInventoryComponent::GetSlotRarity_Implementation(int32 Index)
+{
+	if (!Inventory.IsValidIndex(Index)) return EItemRarity::None;
+	return Inventory[Index].ItemRarity;
+}
 
+void UInventoryComponent::ISplitItem_Implementation(int32 IndexToSplit, int32 QuantityToSplit)
+{
+	SplitItem(IndexToSplit, QuantityToSplit);
+}
 
+void UInventoryComponent::IRemoveItem_Implementation(int32 Index)
+{
+	RemoveItem(Index);
+}
 
+void UInventoryComponent::ISwapItem_Implementation(int32 SourceIndex, int32 DestinationIndex)
+{
+	SwapItem(SourceIndex, DestinationIndex);
+}
+
+void UInventoryComponent::IDropItemQuantity_Implementation(int32 SlotIndex, int32 QuantityToSubtract)
+{
+	DropItemQuantity(SlotIndex, QuantityToSubtract);
+}
+#pragma endregion
