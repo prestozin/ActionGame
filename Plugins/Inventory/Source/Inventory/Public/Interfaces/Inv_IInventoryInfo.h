@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "UObject/Interface.h"
-#include "Inv_InventorySetup.generated.h"
+#include "Inv_IInventoryInfo.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInv_InventorySetup : public UInterface
+class UInv_IInventoryInfo : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,7 +17,7 @@ class UInv_InventorySetup : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_InventorySetup
+class INVENTORY_API IInv_IInventoryInfo
 {
 	GENERATED_BODY()
 

@@ -3,11 +3,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "Inv_InteractionInterface.generated.h"
+#include "Inv_IInteract.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInv_InteractionInterface : public UInterface
+class UInv_IInteract : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -15,7 +15,7 @@ class UInv_InteractionInterface : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_InteractionInterface
+class INVENTORY_API IInv_IInteract
 {
 	GENERATED_BODY()
 

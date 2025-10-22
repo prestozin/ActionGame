@@ -13,7 +13,10 @@ UCLASS()
 class INVENTORY_API UInv_ItemInspector : public UUserWidget
 {
 	GENERATED_BODY()
-
+protected:
+	
+	virtual void NativeConstruct() override;
+	
 private:
 
 	UPROPERTY(meta = (BindWidget))
@@ -31,9 +34,16 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemImage;
 
+	UPROPERTY(EditAnywhere)
+	FVector2D WidgetOffset;
+
+	
+
 public:
 
-	void SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const;
+	void SetInspectorSetup(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const;
 
 	void HideInspector();
+
+	FVector2D GetWidgetOffset() const;
 };

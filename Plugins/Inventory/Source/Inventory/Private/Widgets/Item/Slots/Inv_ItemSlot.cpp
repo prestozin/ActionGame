@@ -39,7 +39,7 @@ FReply UInv_ItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 
 FReply UInv_ItemSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	OnSlotClicked.ExecuteIfBound(SlotIndex);
+	OnSlotClicked.ExecuteIfBound(SlotIndex, GetSlotPosition());
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
 }
 
@@ -47,7 +47,7 @@ void UInv_ItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPoint
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
 	
-	OnItemHovered.ExecuteIfBound(SlotIndex);
+	OnItemHovered.ExecuteIfBound(SlotIndex, GetSlotPosition());
 }
 
 void UInv_ItemSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
@@ -79,7 +79,6 @@ void UInv_ItemSlot::SetSlotInfo(UTexture2D* Icon, int32 Quantity, int32 Index)
 			SlotQuantity = Quantity;
 			TextItemQuantity->SetText(FText::AsNumber(SlotQuantity));
 		}
-
 		SetSlotIndex(Index);
 	}
 }
@@ -101,4 +100,11 @@ UTexture2D* UInv_ItemSlot::GetSlotIcon()
 int32 UInv_ItemSlot::GetSlotIndex()
 {
 	return SlotIndex;
+}
+
+FVector2D UInv_ItemSlot::GetSlotPosition() const
+{
+	FGeometry WidgetGeometry =  GetCachedGeometry();
+	FVector2D WidgetPosition = WidgetGeometry.GetAbsolutePosition();
+	return WidgetPosition;
 }

@@ -4,16 +4,16 @@
 #include "Components/ActorComponent.h"
 #include "Data/Inv_InventoryTypes.h"
 #include "Data/Inv_ItemDataStructs.h"
-#include "Interfaces/Inv_InteractionInterface.h"
-#include "Interfaces/Inv_InventoryListener.h"
-#include "Interfaces/Inv_InventorySetup.h"
-#include "Interfaces/Inv_InventoryActions.h"
+#include "Interfaces/Inv_IInteract.h"
+#include "Interfaces/Inv_IInventoryListener.h"
+#include "Interfaces/Inv_IInventoryInfo.h"
+#include "Interfaces/Inv_IInventoryActions.h"
 #include "InventoryComponent.generated.h"
 
 class AInv_MasterItem;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_InventoryListener, public IInv_InventorySetup, public IInv_InventoryActions, public IInv_InteractionInterface
+class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_IInventoryListener, public IInv_IInventoryInfo, public IInv_IInventoryActions, public IInv_IInteract
 {
 	GENERATED_BODY()
 
@@ -30,12 +30,10 @@ private:
 	// =================================
 
 	UPROPERTY()
-	TArray<TScriptInterface<IInv_InventoryListener>> InventoryListeners;
+	TArray<TScriptInterface<IInv_IInventoryListener>> InventoryListeners;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
-	
-	TWeakObjectPtr<APlayerController> OwningController;
 	
 	UPROPERTY()
 	TSubclassOf<AInv_MasterItem> ItemClass;

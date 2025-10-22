@@ -52,6 +52,12 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	UButton* DropButton;
 
+	UPROPERTY()
+	int32 MaxStack;
+	
+	UPROPERTY()
+	int32 SlotIndex;
+	
 	// ================================
 	// =        FUNCTIONS           =
 	// ================================
@@ -79,11 +85,7 @@ public:
 	// =        PROPERTIES            =
 	// ================================
 	
-	UPROPERTY()
-	int32 MaxStack;
 	
-	UPROPERTY()
-	int32 SlotIndex;
 	
 	UPROPERTY()
 	int32 ValueToSplit;
@@ -95,4 +97,12 @@ public:
 	FOnSplitConfirmed OnSplitConfirmed;
 	
 	FOnDropConfirmed OnDropConfirmed;
+
+	// ================================
+	// =        FUNCTIONS           =
+	// ================================
+
+	void SetIndexToSplit(int32 Index);
+
+	void SetMaxStack(int32 MaxQuantity);
 };

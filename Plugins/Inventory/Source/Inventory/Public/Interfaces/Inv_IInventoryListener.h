@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "Data/Inv_InventoryTypes.h"
-#include "Inv_InventoryListener.generated.h"
+#include "Inv_IInventoryListener.generated.h"
 
 UINTERFACE()
 
-class UInv_InventoryListener : public UInterface
+class UInv_IInventoryListener : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,7 +17,7 @@ class UInv_InventoryListener : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_InventoryListener
+class INVENTORY_API IInv_IInventoryListener
 {
 	GENERATED_BODY()
 

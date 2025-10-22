@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interfaces/Inv_InteractionInterface.h"
+#include "Interfaces/Inv_IInteract.h"
 #include "Inv_MasterItem.generated.h"
 
 
 class UStaticMeshComponent;
 
 UCLASS()
-class INVENTORY_API AInv_MasterItem : public AActor, public IInv_InteractionInterface
+class INVENTORY_API AInv_MasterItem : public AActor, public IInv_IInteract
 {
 	GENERATED_BODY()
 

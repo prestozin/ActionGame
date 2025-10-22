@@ -1,12 +1,23 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Widgets/Item/Inspection/Inv_ItemInspector.h"
+
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 
 
+void UInv_ItemInspector::NativeConstruct()
+{
+	Super::NativeConstruct();
+	SetVisibility(ESlateVisibility::Collapsed);
+}
 
-void UInv_ItemInspector::SetInspectorInfos(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const
+FVector2D UInv_ItemInspector::GetWidgetOffset() const
+{
+	return WidgetOffset;
+}
+
+void UInv_ItemInspector::SetInspectorSetup(UTexture2D* Image, const FText& ItemName, const FText& ItemType, const FText& ItemRarity, const FText& ItemDescription) const
 {
 	if (Image)
 	{

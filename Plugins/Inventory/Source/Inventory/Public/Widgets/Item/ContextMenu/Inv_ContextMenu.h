@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Inv_SlotContextMenu.generated.h"
+#include "Inv_ContextMenu.generated.h"
 
 class UButton;
 
@@ -16,7 +16,7 @@ DECLARE_DELEGATE_OneParam(FOnDropClicked, int32 /*slot index */)
 
 #pragma endregion
 UCLASS()
-class INVENTORY_API UInv_SlotContextMenu : public UUserWidget
+class INVENTORY_API UInv_ContextMenu : public UUserWidget
 {
 	GENERATED_BODY()
 	
@@ -29,6 +29,9 @@ private:
 	// ================================
 	// =        PROPERTIES         =
 	// ================================
+
+	UPROPERTY()
+	int32 SlotIndex = INDEX_NONE;
 	
 	UPROPERTY(meta = (BindWidget))
 	UButton* EquipButton;
@@ -41,7 +44,10 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* CancelButton;
-		
+	
+	UPROPERTY(EditAnywhere, Category = "Menu Offset")
+	FVector2D WidgetOffset;
+	
 	// ================================
 	// =        FUNCTIONS         =
 	// ================================
@@ -55,15 +61,10 @@ private:
 	UFUNCTION()
 	void DropItem();
 
+
+
 public:
-
-	// ================================
-	// =        PROPERTIES        =
-	// ================================
 	
-	UPROPERTY()
-	int32 SlotIndex = INDEX_NONE;
-
 	// ================================
 	// =        DELEGATES         =
 	// ================================
@@ -77,5 +78,10 @@ public:
 	// ================================
 
 	UFUNCTION()
-	void CloseContextMenu();
+	void ToggleVisibility();
+
+	UFUNCTION(BlueprintCallable)
+	void SetContextSetup (int32 Index);
+
+	FVector2D GetWidgetOffset() const;
 };

@@ -2,9 +2,6 @@
 #include "Components/InventoryComponent.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Items/Inv_MasterItem.h"
-#include "Interfaces/Inv_InventoryActions.h"
-#include "Interfaces/Inv_InventorySetup.h"
-#include "Interfaces/Inv_InventoryListener.h"
 
 #pragma region StartSection
 
@@ -17,12 +14,11 @@ UInventoryComponent::UInventoryComponent()
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	OwningController = GetWorld()->GetFirstPlayerController();
 }
 
 void UInventoryComponent::BroadcastInventoryChanges(EInventoryUpdateType UpdateType, const TArray<int32>& ModifiedIndexes)
 {
-	for (const TScriptInterface<IInv_InventoryListener>& Listener : InventoryListeners)
+	for (const TScriptInterface<IInv_IInventoryListener>& Listener : InventoryListeners)
 	{
 		if (Listener.GetInterface())
 		{
@@ -44,6 +40,8 @@ void UInventoryComponent::AddItem(FName RowName, int32 Quantity)
 	if (!CollectedItem) return;
 	
 	FItemData ItemToAdd = *CollectedItem;
+	
+	if (ItemToAdd.ItemNumericData.Quantity == 0) return;
 	
 	if (ItemToAdd.ItemNumericData.IsStackable)
 	{
@@ -214,7 +212,7 @@ void UInventoryComponent::RegisterListener_Implementation(UObject* ObjectListene
 {
 	if (!ObjectListener) return;
 
-	auto Listener = MakeInterface<IInv_InventoryListener>(ObjectListener);
+	auto Listener = MakeInterface<IInv_IInventoryListener>(ObjectListener);
 	if (!Listener) return;
 
 	InventoryListeners.Add(Listener); 

@@ -2,14 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Interfaces/Inv_InventoryListener.h"
-#include "Interfaces/Inv_InventorySetup.h"
-#include "Interfaces/Inv_InventoryActions.h"
+#include "Interfaces/Inv_IInventoryListener.h"
+#include "Interfaces/Inv_IInventoryInfo.h"
+#include "Interfaces/Inv_IInventoryActions.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "InventoryHUD.generated.h"
 
 #pragma region Classes
 
+class UCanvasPanel;
 class UGridPanel;
 class UInventoryComponent;
 class UInv_ItemInteractor;
@@ -19,12 +20,12 @@ class UInv_SplitStack;
 class UInv_ItemSlot;
 class UInv_DragDrop;
 class UInv_DropZone;
-class UInv_SlotContextMenu;
+class UInv_ContextMenu;
 
 #pragma endregion
 
 UCLASS()
-class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_InventoryListener, public IInv_InventorySetup, public IInv_InventoryActions
+class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_IInventoryListener, public IInv_IInventoryInfo, public IInv_IInventoryActions
 {
 	GENERATED_BODY()
 	
@@ -64,9 +65,6 @@ private:
 
 #pragma region WidgetsClass
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "Interact Widget")
-	TSubclassOf<UInv_ItemInteractor> InteractWidgetClass;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory", DisplayName = "ItemSlot Widget")
 	TSubclassOf<UInv_ItemSlot> ItemSlotClass;
 	
@@ -75,27 +73,21 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "DragDrop Widget")
 	TSubclassOf<UInv_DragDrop> DragDropClass;
-	
-	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "ItemInspector Widget")
-	TSubclassOf<UInv_ItemInspector> ItemInspectorClass;
-	
-	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "SplitStack Widget")
-	TSubclassOf<UInv_SplitStack> SplitStackClass;
 
-	UPROPERTY(EditAnywhere, Category = "Inventory", DisplayName = "ContextMenu Widget")
-	TSubclassOf<UInv_SlotContextMenu> ContextMenuClass;
-	
 #pragma endregion
 
 #pragma region Widgets
 	
-	UPROPERTY()
-	UInv_ItemInspector* ItemInspector;
+	UPROPERTY(meta = (BindWidget))
+	UInv_ItemInspector* ItemInspectorWidget;
 	
-	UPROPERTY()
-	UInv_ItemInteractor* InteractWidget;
+	UPROPERTY(meta = (BindWidget))
+	UInv_DropZone* DropZoneWidget;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidget))
+	UInv_ContextMenu* ContextMenuWidget;
+
+	UPROPERTY(meta = (BindWidget))
 	UInv_SplitStack* SplitStackWidget;
 
 	UPROPERTY()
@@ -104,11 +96,6 @@ private:
 	UPROPERTY()
 	UInv_DragDrop* DragDropWidget;
 
-	UPROPERTY(meta = (BindWidget))
-	UInv_DropZone* DropZoneWidget;
-
-	UPROPERTY(meta = (BindWidget))
-	UInv_SlotContextMenu* ContextMenuWidget;
 	
 #pragma endregion
 
@@ -117,7 +104,12 @@ private:
 	// ================================
 	// =       PROPERTIES           =
 	// ================================
-	TScriptInterface<IInv_InventorySetup> InventorySource;
+
+	
+	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* CanvasPanel;
+	
+	TScriptInterface<IInv_IInventoryInfo> InventorySource;
 	
 	UPROPERTY(meta = (BindWidget))
 	UGridPanel* InventoryGridPanel;
@@ -162,29 +154,25 @@ private:
 
 #pragma region CreateWidgets
 	
-	void CreateDefaultWidgets();
-	
-	void SetInspectorSetup(int32 ItemIndex);
+	void SetInspectorSetup(int32 ItemIndex, FVector2D SlotPosition);
 
 	void OnItemDropped(UDragDropOperation* InOperation, int32 DestinationIndex) const;
 
-	void CreateItemInspectorWidget();
-
-	void CreateInteractWidget();
-
-	void CreateSplitStackWidget(int32 Index);
+	void SetSplitStackWidget(int32 Index);
 
 	void CreateDragDropSetup();
 
 	void CreateContextMenu();
 
-	void SetContextMenuSetup(int32 SlotIndex);
+	void SetContextMenuSetup(int32 SlotIndex, FVector2D SlotPosition);
+
+	void SetWidgetPosition(const UUserWidget* WidgetToMove, const FVector2D& AbsolutePosition, FVector2D Offset);
 
 	void SetSlotSetup (UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int32 Quantity, int32 Index);
 	
 	UDragDropOperation* CreateDragDropWidget(UInv_ItemSlot* ItemSlot);
 
-	UInv_ItemInspector* GetItemInspector() const { return ItemInspector; }
+	UInv_ItemInspector* GetItemInspector() const { return ItemInspectorWidget; }
 
 #pragma endregion
 	
@@ -196,9 +184,7 @@ public:
 	// ================================
 	
 	bool ToggleHUD();
-		
-	UInv_ItemInteractor* GetInteractWidget() const { return InteractWidget; }
-
+	
 	void InitializeHUD(UObject* IntInventorySource);
 		
 };

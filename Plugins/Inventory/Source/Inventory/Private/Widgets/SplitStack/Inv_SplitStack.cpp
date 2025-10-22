@@ -11,8 +11,8 @@
 void UInv_SplitStack::NativeConstruct()
 {
 	Super::NativeConstruct();
-	
 	SetSplitSetup();
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UInv_SplitStack::SetSplitSetup()
@@ -43,6 +43,16 @@ void UInv_SplitStack::SetSplitSetup()
 	{
 		DropButton->OnClicked.AddDynamic(this, &UInv_SplitStack::DropConfirmed);
 	}
+}
+
+void UInv_SplitStack::SetIndexToSplit(int32 Index)
+{
+	SlotIndex = Index;
+}
+
+void UInv_SplitStack::SetMaxStack(int32 MaxQuantity)
+{
+	MaxStack = MaxQuantity;
 }
 
 void UInv_SplitStack::SplitConfirmed()

@@ -5,7 +5,7 @@
 
 #include "Components/InventoryComponent.h"
 #include "Components/SphereComponent.h"
-#include "Interfaces/Inv_InteractionInterface.h"
+#include "Interfaces/Inv_IInteract.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -128,7 +128,7 @@ void APlayerCharacter::Jump(const FInputActionValue& Value)
 void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
+	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInv_IInteract::StaticClass()))
 	{
 		NearActor = OtherActor;
 
@@ -168,14 +168,14 @@ void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedCompone
 void APlayerCharacter::Interact()
 {
 				// se other actor for valido, tiver a tag e tiver a interface, passe para proxima etapa
-			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass()))
+			if (NearActor && NearActor->ActorHasTag("Item") && NearActor->GetClass()->ImplementsInterface(UInv_IInteract::StaticClass()))
 			{
 				FName ID;
 				int32 Quantity;
 
 				// pegue a interface do other actor, e chame a função preenchida, defina de quem é a função (other actor) e preencha os inputs
-				NearActor->GetClass()->ImplementsInterface(UInv_InteractionInterface::StaticClass());
-				IInv_InteractionInterface::Execute_GetItemData(NearActor, ID, Quantity);
+				NearActor->GetClass()->ImplementsInterface(UInv_IInteract::StaticClass());
+				IInv_IInteract::Execute_GetItemData(NearActor, ID, Quantity);
 
 				UE_LOG(LogTemp, Warning, TEXT("Item Name: %s"), *ID.ToString());
 

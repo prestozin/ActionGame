@@ -17,9 +17,9 @@ class UImage;
 #pragma region Delegates
 
 
-DECLARE_DELEGATE_OneParam(FOnItemHovered, int32 /*SlotIndex*/);
+DECLARE_DELEGATE_TwoParams(FOnItemHovered, int32 /*SlotIndex*/, FVector2D /*slot position*/);
 DECLARE_DELEGATE_OneParam(FOnSplitStart, int32 /*SlotIndex*/);
-DECLARE_DELEGATE_OneParam(FOnSlotClicked, int32 /*SlotIndex*/);
+DECLARE_DELEGATE_TwoParams(FOnSlotClicked, int32 /*SlotIndex*/, FVector2D /*slot position*/);
 DECLARE_DELEGATE(FOnHoverEnd);
 DECLARE_DELEGATE_RetVal_OneParam(UDragDropOperation*, FOnItemDragged, UInv_ItemSlot* /*SlotIndex*/);
 DECLARE_DELEGATE_TwoParams(FOnItemDropped,UDragDropOperation* /*DragDrop*/, int32 /*ToIndex*/);
@@ -57,10 +57,13 @@ private:
 
 	UPROPERTY()
 	bool bDragDetected = false;
+	
 	// ================================
 	// =        FUNCTIONS            =
 	// =================================
 
+	FVector2D GetSlotPosition() const;
+	
 public:
 	
 	// ================================

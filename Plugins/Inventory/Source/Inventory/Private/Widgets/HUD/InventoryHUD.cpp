@@ -3,26 +3,26 @@
 
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
-
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 
 #include "Widgets/DragDrop/Inv_OnDragSlot.h"
 #include "Widgets/SplitStack/Inv_SplitStack.h"
 #include "Widgets/Item/Slots/Inv_ItemSlot.h"
-#include "Widgets/Interaction/Inv_ItemInteractor.h"
 #include "Widgets/Item/Inspection/Inv_ItemInspector.h"
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
-#include "Widgets/Item/ContextMenu/Inv_SlotContextMenu.h"
-#include "Interfaces/Inv_InventoryActions.h"
-#include "Interfaces/Inv_InventorySetup.h"
-#include "Interfaces/Inv_InventoryListener.h"
+#include "Widgets/Item/ContextMenu/Inv_ContextMenu.h"
+#include "Interfaces/Inv_IInventoryActions.h"
+#include "Interfaces/Inv_IInventoryInfo.h"
+#include "Interfaces/Inv_IInventoryListener.h"
 
 
 
 void UInventoryHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
-	CreateDefaultWidgets();
+	CreateDragDropSetup();
 }
 
 void UInventoryHUD::InitializeHUD(UObject* IntInventorySource)
@@ -30,11 +30,11 @@ void UInventoryHUD::InitializeHUD(UObject* IntInventorySource)
 	InventorySlots.Empty();
 	InventoryFilter = EItemType::None;
 
-	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_InventorySetup::StaticClass()))
+	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryInfo::StaticClass()))
 	{
 		InventorySource = IntInventorySource;
 		
-		if (IntInventorySource->GetClass()->ImplementsInterface(UInv_InventoryActions::StaticClass()))
+		if (IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryActions::StaticClass()))
 		{
 			Execute_RegisterListener(IntInventorySource, this);
 		}
@@ -180,42 +180,14 @@ void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 Destina
 
 #pragma endregion
 
-#pragma region CreateWidgets
+#pragma region SetupWidgets
 
-void UInventoryHUD::CreateDefaultWidgets()
+void UInventoryHUD::SetSplitStackWidget(int32 Index)
 {
-	CreateInteractWidget();
-	CreateItemInspectorWidget();
-	CreateDragDropSetup();
-	CreateContextMenu();
-}
-
-void UInventoryHUD::CreateInteractWidget()
-{
-	if (!InteractWidgetClass) return;
-	InteractWidget = WidgetFactory(InteractWidgetClass);
-	
-	if (!InteractWidget) return;
-	
-	InteractWidget->AddToViewport(1);
-}
-
-void UInventoryHUD::CreateSplitStackWidget(int32 Index)
-{
-	if (!SplitStackClass) return;
-
-	if (SplitStackWidget)
-	{
-		SplitStackWidget->RemoveFromParent();
-		SplitStackWidget = nullptr;
-	}
-	
-	SplitStackWidget = WidgetFactory(SplitStackClass);
-	
 	if (!SplitStackWidget) return;
 	
-	SplitStackWidget->SlotIndex = Index;
-	SplitStackWidget->MaxStack = Execute_GetSlotQuantity(InventorySource.GetObject(), Index);
+	SplitStackWidget->SetIndexToSplit(Index);
+	SplitStackWidget->SetMaxStack(Execute_GetSlotQuantity(InventorySource.GetObject(), Index));
 	SplitStackWidget->OnSplitConfirmed.BindLambda([this](int32 Index, int32 Quantity)
 	{
 		Execute_ISplitItem(InventorySource->_getUObject(), Index, Quantity);
@@ -224,7 +196,6 @@ void UInventoryHUD::CreateSplitStackWidget(int32 Index)
 	{
 		Execute_IDropItemQuantity(InventorySource->_getUObject(), Index, Quantity);
 	});
-	SplitStackWidget->AddToViewport();
 }
 
 UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
@@ -241,30 +212,19 @@ UDragDropOperation* UInventoryHUD::CreateDragDropWidget(UInv_ItemSlot* ItemSlot)
 	return DragDropWidget;
 }
 
-void UInventoryHUD::CreateItemInspectorWidget()
+void UInventoryHUD::SetInspectorSetup(int32 ItemIndex, FVector2D SlotPosition)
 {
-	if (!ItemInspectorClass) return;
+	if (!ItemInspectorWidget) return;
 	
-	ItemInspector = WidgetFactory(ItemInspectorClass);
-	
-	if (!ItemInspector) return;
-	
-	ItemInspector->AddToViewport();
-	ItemInspector->SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UInventoryHUD::SetInspectorSetup(int32 ItemIndex)
-{
 	UTexture2D* ItemImage = Execute_GetSlotIcon(InventorySource.GetObject(), ItemIndex);
 	FText ItemName = Execute_GetSlotName(InventorySource.GetObject(), ItemIndex);
 	FText ItemDescription = Execute_GetSlotDescription(InventorySource.GetObject(), ItemIndex);
 	FText ItemRarity = EnumToText(Execute_GetSlotRarity(InventorySource.GetObject(), ItemIndex));
 	FText ItemType = EnumToText(Execute_GetSlotType(InventorySource.GetObject(), ItemIndex));
-
-	if (!ItemInspector) return;
 	
-	ItemInspector->SetInspectorInfos(ItemImage, ItemName, ItemDescription, ItemRarity, ItemType);
-	ItemInspector->SetVisibility(ESlateVisibility::Visible);
+	ItemInspectorWidget->SetInspectorSetup(ItemImage, ItemName, ItemDescription, ItemRarity, ItemType);
+	SetWidgetPosition(ItemInspectorWidget, SlotPosition, ItemInspectorWidget->GetWidgetOffset());
+	ItemInspectorWidget->SetVisibility(ESlateVisibility::Visible);
 }
 
 void UInventoryHUD::CreateDragDropSetup()
@@ -277,29 +237,19 @@ void UInventoryHUD::CreateDragDropSetup()
 
 void UInventoryHUD::CreateContextMenu()
 {
-	
-	if (!ContextMenuWidget || !ContextMenuClass) return;
-	
-	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
+	if (!ContextMenuWidget) return;
+	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::SetSplitStackWidget);
 	ContextMenuWidget->OnDropClicked.BindLambda([this](int32 Index)
 	{
 		Execute_IRemoveItem(InventorySource->_getUObject(), Index);
 	});
 }
 
-void UInventoryHUD::SetContextMenuSetup(int32 SlotIndex)
+void UInventoryHUD::SetContextMenuSetup(int32 SlotIndex, FVector2D SlotPosition)
 {
-	if (!ContextMenuWidget || SlotIndex < 0) return;
-	ContextMenuWidget->SlotIndex = SlotIndex;
-	if (ContextMenuWidget->GetVisibility() == ESlateVisibility::Collapsed)
-	{
-		ContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
-	}
-	else
-	{
-		ContextMenuWidget->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	
+	if (!ContextMenuWidget) return;
+	ContextMenuWidget->SetContextSetup(SlotIndex);
+	SetWidgetPosition(ContextMenuWidget, SlotPosition, ContextMenuWidget->GetWidgetOffset());
 }
 
 void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int32 Quantity, int32 Index)
@@ -307,12 +257,12 @@ void UInventoryHUD::SetSlotSetup(UInv_ItemSlot* ItemSlot, UTexture2D* Icon, int3
 	if (!ItemSlot) return;
 	ItemSlot->SetSlotInfo(Icon, Quantity, Index);
 	ItemSlot->OnItemDropped.BindUObject(this, &UInventoryHUD::OnItemDropped);
-	ItemSlot->OnSplitStart.BindUObject(this, &UInventoryHUD::CreateSplitStackWidget);
+	ItemSlot->OnSplitStart.BindUObject(this, &UInventoryHUD::SetSplitStackWidget);
 	ItemSlot->OnItemHovered.BindUObject(this, &UInventoryHUD::SetInspectorSetup);
-	ItemSlot->OnHoverEnd.BindUObject(ItemInspector, &UInv_ItemInspector::HideInspector);
+	ItemSlot->OnHoverEnd.BindUObject(ItemInspectorWidget, &UInv_ItemInspector::HideInspector);
 	ItemSlot->OnItemDragged.BindUObject(this, &UInventoryHUD::CreateDragDropWidget);
 	ItemSlot->OnSlotClicked.BindUObject(this, &UInventoryHUD::SetContextMenuSetup);
-	ItemSlot->OnSlotDragged.BindUObject(ContextMenuWidget, &UInv_SlotContextMenu::CloseContextMenu);
+	ItemSlot->OnSlotDragged.BindUObject(ContextMenuWidget, &UInv_ContextMenu::ToggleVisibility);
 }
 
 #pragma endregion
@@ -401,3 +351,24 @@ FIntPoint UInventoryHUD::GetGridPosition(int32 Index) const
 	return FIntPoint(Col, Row);
 }
 
+void UInventoryHUD::SetWidgetPosition(const UUserWidget* WidgetToMove, const FVector2D& AbsolutePosition, FVector2D Offset)
+{
+	if (!WidgetToMove) return;
+	if (UCanvasPanelSlot* WidgetSlot = Cast<UCanvasPanelSlot>(WidgetToMove->Slot))
+	{
+		if  (UCanvasPanel* ParentCanvas = Cast<UCanvasPanel>(WidgetSlot->Parent))
+		{
+			FGeometry CanvasGeometry = ParentCanvas->GetCachedGeometry();
+			FVector2D CanvasSize = CanvasGeometry.GetLocalSize();
+			FVector2D LocalPosition = CanvasGeometry.AbsoluteToLocal(AbsolutePosition);
+			
+			// fix by pivot value (0.5, 0.5f)
+			LocalPosition -= CanvasSize * FVector2D(0.5f, 0.5f);
+			
+			FVector2D WidgetOffset = Offset;
+			FVector2D FinalPosition = LocalPosition + WidgetOffset;
+			
+			WidgetSlot->SetPosition(FinalPosition);
+		}
+	}
+}

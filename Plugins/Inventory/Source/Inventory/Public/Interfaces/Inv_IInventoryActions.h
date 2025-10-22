@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "Inv_InventoryActions.generated.h"
+#include "Inv_IInventoryActions.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInv_InventoryActions : public UInterface
+class UInv_IInventoryActions : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -16,7 +16,7 @@ class UInv_InventoryActions : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_InventoryActions
+class INVENTORY_API IInv_IInventoryActions
 {
 	GENERATED_BODY()
 
