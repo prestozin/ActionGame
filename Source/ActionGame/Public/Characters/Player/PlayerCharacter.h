@@ -9,15 +9,12 @@
 
 #pragma region classes
 
-
 class UInventoryComponent;
 class USphereComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-class UInventoryHUD;
-class UInv_ItemInteractor;
 
 #pragma endregion
 
@@ -97,26 +94,17 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* Camera;
-
-	UPROPERTY()
-	UInventoryHUD* InventoryHUD;
-
-	UPROPERTY()
-	UInv_ItemInteractor* InteractWidget;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UInventoryHUD> HUDClass;
 	
 	// ================================
 	// =        FUNCTIONS            =
 	// ================================
 
+	void ConfigurePlayerMovement();
+	
 	UFUNCTION()
-	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 };

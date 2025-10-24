@@ -80,9 +80,9 @@ public:
 	
 	void SetSlotIndex (int32 Index);
 
-	UTexture2D* GetSlotIcon();
+	UTexture2D* GetSlotIcon() const;
 
-	int32 GetSlotIndex();
+	int32 GetSlotIndex() const;
 
 	// ================================
 	// =        DELEGATES           =

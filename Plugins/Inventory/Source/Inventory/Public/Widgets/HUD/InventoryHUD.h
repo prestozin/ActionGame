@@ -104,10 +104,6 @@ private:
 	// ================================
 	// =       PROPERTIES           =
 	// ================================
-
-	
-	UPROPERTY(meta = (BindWidget))
-	UCanvasPanel* CanvasPanel;
 	
 	TScriptInterface<IInv_IInventoryInfo> InventorySource;
 	
@@ -160,9 +156,11 @@ private:
 
 	void SetSplitStackWidget(int32 Index);
 
-	void CreateDragDropSetup();
+	void SetDragDrop();
 
-	void CreateContextMenu();
+	void SetDropZone();
+
+	void SetContextMenu();
 
 	void SetContextMenuSetup(int32 SlotIndex, FVector2D SlotPosition);
 
@@ -184,7 +182,8 @@ public:
 	// ================================
 	
 	bool ToggleHUD();
-	
-	void InitializeHUD(UObject* IntInventorySource);
+
+	UFUNCTION(BlueprintCallable)
+	void InitializeInventory(UObject* IntInventorySource);
 		
 };

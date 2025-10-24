@@ -22,14 +22,14 @@
 void UInventoryHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
-	CreateDragDropSetup();
-}
-
-void UInventoryHUD::InitializeHUD(UObject* IntInventorySource)
-{
+	SetDragDrop();
+	SetDropZone();
 	InventorySlots.Empty();
 	InventoryFilter = EItemType::None;
+}
 
+void UInventoryHUD::InitializeInventory(UObject* IntInventorySource)
+{
 	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryInfo::StaticClass()))
 	{
 		InventorySource = IntInventorySource;
@@ -39,10 +39,6 @@ void UInventoryHUD::InitializeHUD(UObject* IntInventorySource)
 			Execute_RegisterListener(IntInventorySource, this);
 		}
 	}
-	
-	if (!DropZoneWidget) return;
-	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
-	SetVisibility(ESlateVisibility::Collapsed);
 }
 
 #pragma region InventoryUpdates
@@ -227,7 +223,7 @@ void UInventoryHUD::SetInspectorSetup(int32 ItemIndex, FVector2D SlotPosition)
 	ItemInspectorWidget->SetVisibility(ESlateVisibility::Visible);
 }
 
-void UInventoryHUD::CreateDragDropSetup()
+void UInventoryHUD::SetDragDrop()
 {
 	if (!DragSlotClass || !DragDropClass) return;
 	
@@ -235,7 +231,14 @@ void UInventoryHUD::CreateDragDropSetup()
 	DragDropWidget = NewObject<UInv_DragDrop>(GetWorld(), DragDropClass);
 }
 
-void UInventoryHUD::CreateContextMenu()
+void UInventoryHUD::SetDropZone()
+{
+	if (!DropZoneWidget) return;
+	DropZoneWidget->GetOnItemDropped().BindUObject(this, &UInventoryHUD::OnItemDropped);
+	SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UInventoryHUD::SetContextMenu()
 {
 	if (!ContextMenuWidget) return;
 	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::SetSplitStackWidget);

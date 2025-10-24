@@ -91,13 +91,13 @@ void UInv_ItemSlot::SetSlotIndex(int32 Index)
 	}
 }
 
-UTexture2D* UInv_ItemSlot::GetSlotIcon()
+UTexture2D* UInv_ItemSlot::GetSlotIcon() const
 {
 	if (!SlotIcon) return nullptr;
 	return SlotIcon;
 }
 
-int32 UInv_ItemSlot::GetSlotIndex()
+int32 UInv_ItemSlot::GetSlotIndex() const
 {
 	return SlotIndex;
 }

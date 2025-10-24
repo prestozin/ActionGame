@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Characters/Player/PlayerCharacter.h"
 
 #include "Components/InventoryComponent.h"
@@ -9,12 +6,11 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "PlayerController/MyPlayerController.h"
 
-#include "Widgets/HUD/InventoryHUD.h"
-#include "Widgets/Interaction/Inv_ItemInteractor.h"
-	
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -45,35 +41,28 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//get player controller
-	PlayerController = Cast<APlayerController>(GetController());
-	if (!PlayerController) return;
-	
-	//widgets
-	if (HUDClass)
-	{
-		InventoryHUD = CreateWidget<UInventoryHUD>(PlayerController,HUDClass);
-		if (!InventoryHUD) return;
-		InventoryHUD->AddToViewport();
-		InventoryHUD->InitializeHUD(PlayerInventory);
-		
-	}
-	
-	//Get local player subsystem
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-	{
-		//add input context
-		Subsystem->AddMappingContext(MappingContext, 0);
-	}
+	ConfigurePlayerMovement();
 }
+
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-
 #pragma region Input
+void APlayerCharacter::ConfigurePlayerMovement()
+{
+	if (AMyPlayerController* PC = Cast<AMyPlayerController>(GetController()))
+	{
+		PlayerController = PC;
+		
+		if (UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			InputSubsystem->AddMappingContext(MappingContext, 0);
+		}
+	}
+}
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -125,15 +114,14 @@ void APlayerCharacter::Jump(const FInputActionValue& Value)
 
 #pragma region Interact
 
-void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                       UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor->ActorHasTag("Item") && OtherActor->GetClass()->ImplementsInterface(UInv_IInteract::StaticClass()))
 	{
 		NearActor = OtherActor;
 
 		//se o inventory hud for valido, mostre a mensagem de interact no overlap
-		if (OtherActor && InteractWidget)
+		/*if (OtherActor && InteractWidget)
 		{
 			InteractWidget->ShowInteractMessage(InteractWidget->GetPickupMessage());
 			UE_LOG(LogTemp, Warning, TEXT("interact widget is valid"));
@@ -144,15 +132,14 @@ void APlayerCharacter::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedCompo
 			UE_LOG(LogTemp, Warning, TEXT("interact widget is not valid"));
 		}
 		
-		UE_LOG(LogTemp, Warning, TEXT("Item próximo: %s"), *OtherActor->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("Item próximo: %s"), *OtherActor->GetName()); */
 	}
 	
 }
 
-void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor == NearActor)
+	/*if (OtherActor == NearActor)
 	{
 		NearActor = nullptr;
 
@@ -162,7 +149,7 @@ void APlayerCharacter::OnSphereEndOverlap(UPrimitiveComponent* OverlappedCompone
 			InteractWidget->HideInteractMessage();
 		}
 		UE_LOG(LogTemp, Warning, TEXT("ator fora de alcance"));
-	}
+	}*/
 }
 
 void APlayerCharacter::Interact()
@@ -197,18 +184,5 @@ void APlayerCharacter::Interact()
 
 void APlayerCharacter::OpenInventory() 
 {
-	if (InventoryHUD)
-	{
-		bool bInventoryOpen = InventoryHUD->ToggleHUD();
-		if (bInventoryOpen)
-		{
-			PlayerController->bShowMouseCursor = true;
-			bUseControllerRotationYaw = false;
-		}
-		else
-		{
-			PlayerController->bShowMouseCursor = false;
-			bUseControllerRotationYaw = true;
-		}
-	}
+	
 }
