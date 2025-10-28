@@ -5,15 +5,15 @@
 #include "Data/Inv_InventoryTypes.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "Interfaces/Inv_IInteract.h"
-#include "Interfaces/Inv_IInventoryListener.h"
-#include "Interfaces/Inv_IInventoryInfo.h"
-#include "Interfaces/Inv_IInventoryActions.h"
+#include "Interfaces/Inv_IInventoryObserver.h"
+#include "Interfaces/Inv_IInventoryReader.h"
+#include "Interfaces/Inv_IInventoryHandler.h"
 #include "InventoryComponent.generated.h"
 
 class AInv_MasterItem;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_IInventoryListener, public IInv_IInventoryInfo, public IInv_IInventoryActions, public IInv_IInteract
+class INVENTORY_API UInventoryComponent : public UActorComponent, public IInv_IInventoryObserver, public IInv_IInventoryReader, public IInv_IInventoryHandler, public IInv_IInteract
 {
 	GENERATED_BODY()
 
@@ -30,7 +30,7 @@ private:
 	// =================================
 
 	UPROPERTY()
-	TArray<TScriptInterface<IInv_IInventoryListener>> InventoryListeners;
+	TArray<TScriptInterface<IInv_IInventoryObserver>> InventoryListeners;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<FItemData> Inventory;
@@ -44,15 +44,13 @@ private:
 	
 	void BroadcastInventoryChanges(EInventoryUpdateType UpdateType, const TArray<int32>& ModifiedIndexes);
 	
-	virtual void RegisterListener_Implementation(UObject* ObjectListener) override;
+	virtual void RegisterObserver_Implementation(UObject* ObjectListener) override;
 			
 	void SplitItem(int32 IndexToSplit, int32 QuantityToSplit);
-
-	void RemoveItem(int32 Index);
 	
 	void SwapItem(int32 SourceIndex, int32 DestinationIndex);
 
-	void DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract);
+	void DropItem(int32 SlotIndex, int32 QuantityToDrop = -1);
 	
 	void StackOnAdd(const FItemData* Item);
 
@@ -88,12 +86,10 @@ public:
 	virtual EItemRarity GetSlotRarity_Implementation(int32 Index) override;
 
 	virtual void ISplitItem_Implementation(int32 IndexToSplit, int32 QuantityToSplit) override;
-
-	virtual void IRemoveItem_Implementation(int32 Index) override;
 	
 	virtual void ISwapItem_Implementation(int32 SourceIndex, int32 DestinationIndex) override;
 
-	virtual void IDropItemQuantity_Implementation(int32 SlotIndex, int32 QuantityToSubtract) override;
+	virtual void IDropItem_Implementation(int32 SlotIndex, int32 QuantityToDrop) override;
 
 	template <typename InterfaceType>
 	static TScriptInterface<InterfaceType> MakeInterface(UObject* Object)

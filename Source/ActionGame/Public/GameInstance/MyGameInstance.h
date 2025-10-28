@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "MyGameInstance.generated.h"
 
+class UInventoryHUD;
 class UMainHud;
 
 UCLASS()
@@ -17,4 +18,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UMainHud> HUDClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UInventoryHUD> InventoryClass;
 };

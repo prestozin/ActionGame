@@ -25,8 +25,4 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	UCanvasPanel* CanvasHUD;
 	
-public:
-	
-	UPROPERTY(meta = (BindWidget))
-	UInventoryHUD* InventoryHUD;
 };

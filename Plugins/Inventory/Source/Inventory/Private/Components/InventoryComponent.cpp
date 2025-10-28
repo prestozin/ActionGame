@@ -18,7 +18,7 @@ void UInventoryComponent::BeginPlay()
 
 void UInventoryComponent::BroadcastInventoryChanges(EInventoryUpdateType UpdateType, const TArray<int32>& ModifiedIndexes)
 {
-	for (const TScriptInterface<IInv_IInventoryListener>& Listener : InventoryListeners)
+	for (const TScriptInterface<IInv_IInventoryObserver>& Listener : InventoryListeners)
 	{
 		if (Listener.GetInterface())
 		{
@@ -166,7 +166,7 @@ void UInventoryComponent::StackOnSwap(int32 DraggedIndex, int32 DestinationIndex
 	}
 }
 
-void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubtract)
+void UInventoryComponent::DropItem(int32 SlotIndex, int32 QuantityToDrop)
 {
 	if (!Inventory.IsValidIndex(SlotIndex)) return;
 
@@ -176,43 +176,29 @@ void UInventoryComponent::DropItemQuantity(int32 SlotIndex, int32 QuantityToSubt
 	
 	if (!World || !ActorOwner || Item.ID.IsNone()) return;
 	
-	if (Item.ItemNumericData.Quantity == QuantityToSubtract)
+	if (Item.ItemNumericData.Quantity == QuantityToDrop || QuantityToDrop < 0)
 	{
-		RemoveItem(SlotIndex);
+		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, Item.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
+		Inventory.RemoveAt(SlotIndex);
+		BroadcastInventoryChanges(EInventoryUpdateType::Remove,{SlotIndex});
 	}
-	else if (QuantityToSubtract < Item.ItemNumericData.Quantity && QuantityToSubtract > 0)
+	else if (QuantityToDrop < Item.ItemNumericData.Quantity && QuantityToDrop > 0)
 	{
-		Item.ItemNumericData.Quantity -= QuantityToSubtract;
+		Item.ItemNumericData.Quantity -= QuantityToDrop;
 		BroadcastInventoryChanges(EInventoryUpdateType::Update,{SlotIndex});
-		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToSubtract, ActorOwner->GetActorLocation(),ActorOwner);
+		AInv_MasterItem::SpawnItem(World, DataTable, Item.ID, QuantityToDrop, ActorOwner->GetActorLocation(),ActorOwner);
 	}
-}
-
-void UInventoryComponent::RemoveItem(int32 Index)
-{
-	if (!Inventory.IsValidIndex(Index)) return;
-
-	UWorld* World = GetWorld();
-	AActor* ActorOwner = GetOwner();
-	
-	if (!World || !ActorOwner) return;
-
-	FItemData& ItemToRemove = Inventory[Index];
-	
-	AInv_MasterItem::SpawnItem(World, DataTable, ItemToRemove.ID, ItemToRemove.ItemNumericData.Quantity, ActorOwner->GetActorLocation(), ActorOwner);
-	Inventory.RemoveAt(Index);
-	BroadcastInventoryChanges(EInventoryUpdateType::Remove,{Index});
 }
 
 #pragma endregion
 
 #pragma region InterfaceImplementations
 
-void UInventoryComponent::RegisterListener_Implementation(UObject* ObjectListener)
+void UInventoryComponent::RegisterObserver_Implementation(UObject* ObjectListener)
 {
 	if (!ObjectListener) return;
 
-	auto Listener = MakeInterface<IInv_IInventoryListener>(ObjectListener);
+	auto Listener = MakeInterface<IInv_IInventoryObserver>(ObjectListener);
 	if (!Listener) return;
 
 	InventoryListeners.Add(Listener); 
@@ -265,18 +251,13 @@ void UInventoryComponent::ISplitItem_Implementation(int32 IndexToSplit, int32 Qu
 	SplitItem(IndexToSplit, QuantityToSplit);
 }
 
-void UInventoryComponent::IRemoveItem_Implementation(int32 Index)
-{
-	RemoveItem(Index);
-}
-
 void UInventoryComponent::ISwapItem_Implementation(int32 SourceIndex, int32 DestinationIndex)
 {
 	SwapItem(SourceIndex, DestinationIndex);
 }
 
-void UInventoryComponent::IDropItemQuantity_Implementation(int32 SlotIndex, int32 QuantityToSubtract)
+void UInventoryComponent::IDropItem_Implementation(int32 SlotIndex, int32 QuantityToSubtract)
 {
-	DropItemQuantity(SlotIndex, QuantityToSubtract);
+	DropItem(SlotIndex, QuantityToSubtract);
 }
 #pragma endregion

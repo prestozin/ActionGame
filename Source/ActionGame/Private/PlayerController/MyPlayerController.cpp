@@ -1,8 +1,8 @@
-
-#include "Subsystems/UIManagerSubsystem.h"
 #include "PlayerController/MyPlayerController.h"
+#include "Subsystems/UIManagerSubsystem.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
 
 #include "Widgets/HUD/InventoryHUD.h"
@@ -10,13 +10,26 @@
 void AMyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	ConfigureInputSystem();
-	InitializeMainHud();
+
+	GetUIManagerSubsystem();
+	AddMappingContext();
+	InitializeHUD();
 	InitializePlayerInventory();
 }
 
-void AMyPlayerController::ConfigureInputSystem() const
+void AMyPlayerController::GetUIManagerSubsystem()
+{
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UUIManagerSubsystem* UISubsystem = LocalPlayer->GetSubsystem<UUIManagerSubsystem>())
+		{
+			UIManagerSubsystem = UISubsystem;
+			UIManagerSubsystem->OnPlayerControllerReady();
+		}
+	}
+}
+
+void AMyPlayerController::AddMappingContext() const
 {
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
@@ -35,38 +48,46 @@ void AMyPlayerController::ConfigureInputSystem() const
 	}
 }
 
-void AMyPlayerController::InitializeMainHud() const
+void AMyPlayerController::SetupInputComponent()
 {
-	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	Super::SetupInputComponent();
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		if (UUIManagerSubsystem* UIManager = LocalPlayer->GetSubsystem<UUIManagerSubsystem>())
-		{
-			UIManager->CreateMainHUD();
-		}
+		EnhancedInput->BindAction(OpenInventory, ETriggerEvent::Started, this,&AMyPlayerController::OnInventoryInputPressed);
 	}
+}
+
+void AMyPlayerController::InitializeHUD() const
+{
+	UIManagerSubsystem->CreateHUD();
 }
 
 void AMyPlayerController::InitializePlayerInventory() const
 {
+	UIManagerSubsystem->CreateInventoryWidget();
+	
 	if (IsLocalController())
 	{
 		ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	
-		if (!LocalPlayer) return;
-	
 		APawn* PlayerPawn = GetPawn();
-		UUIManagerSubsystem* UIManager = LocalPlayer->GetSubsystem<UUIManagerSubsystem>();
-	
-		if (!PlayerPawn || !UIManager ) return;
-	
+		
+		if (!LocalPlayer || !PlayerPawn || !UIManagerSubsystem) return;
+
 		for (UActorComponent* InventoryComponent : PlayerPawn->GetComponents())
 		{
-			if (InventoryComponent->GetClass()->ImplementsInterface(UInv_IInventoryInfo::StaticClass()))
+			if (InventoryComponent->GetClass()->ImplementsInterface(UInv_IInventoryReader::StaticClass()))
 			{
-				UIManager->SetupInventory(InventoryComponent);
+				UIManagerSubsystem->SetInventoryWidget(InventoryComponent);
 				break;
 			}
 		}
 	}
 }
+
+void AMyPlayerController::OnInventoryInputPressed()
+{
+	if (!UIManagerSubsystem) return;
+	UIManagerSubsystem->ToggleInventoryWidget();
+}
+
 

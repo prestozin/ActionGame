@@ -2,9 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Interfaces/Inv_IInventoryListener.h"
-#include "Interfaces/Inv_IInventoryInfo.h"
-#include "Interfaces/Inv_IInventoryActions.h"
+#include "Interfaces/Inv_IInventoryObserver.h"
+#include "Interfaces/Inv_IInventoryReader.h"
+#include "Interfaces/Inv_IInventoryHandler.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "InventoryHUD.generated.h"
 
@@ -25,7 +25,7 @@ class UInv_ContextMenu;
 #pragma endregion
 
 UCLASS()
-class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_IInventoryListener, public IInv_IInventoryInfo, public IInv_IInventoryActions
+class INVENTORY_API UInventoryHUD : public UUserWidget, public IInv_IInventoryObserver, public IInv_IInventoryReader, public IInv_IInventoryHandler
 {
 	GENERATED_BODY()
 	
@@ -105,7 +105,7 @@ private:
 	// =       PROPERTIES           =
 	// ================================
 	
-	TScriptInterface<IInv_IInventoryInfo> InventorySource;
+	TScriptInterface<IInv_IInventoryReader> InventorySource;
 	
 	UPROPERTY(meta = (BindWidget))
 	UGridPanel* InventoryGridPanel;

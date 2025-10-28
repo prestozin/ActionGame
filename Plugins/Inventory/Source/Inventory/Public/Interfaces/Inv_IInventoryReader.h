@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Data/Inv_ItemDataStructs.h"
 #include "UObject/Interface.h"
-#include "Inv_IInventoryInfo.generated.h"
+#include "Inv_IInventoryReader.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UInv_IInventoryInfo : public UInterface
+class UInv_IInventoryReader : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,11 +17,11 @@ class UInv_IInventoryInfo : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_IInventoryInfo
+class INVENTORY_API IInv_IInventoryReader
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
+
 public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Inventory")

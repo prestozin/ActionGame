@@ -5,8 +5,10 @@
 #include "MyPlayerController.generated.h"
 
 
+class UInputAction;
 struct FInputActionValue;
 class UInputMappingContext;
+class UUIManagerSubsystem;
 
 UCLASS()
 class ACTIONGAME_API AMyPlayerController : public APlayerController
@@ -16,28 +18,39 @@ class ACTIONGAME_API AMyPlayerController : public APlayerController
 protected:
 	
 	virtual void BeginPlay() override;
+
+	virtual void SetupInputComponent() override;
 	
 private:
 
 	// ================================
 	// =        PROPERTIES           =
 	// ================================
+
+	UPROPERTY()
+	UUIManagerSubsystem* UIManagerSubsystem;
 	
 	UPROPERTY(EditAnywhere)
 	UInputMappingContext* DefaultMappingContext = nullptr;
-
 	
 	UPROPERTY(EditAnywhere)
 	UInputMappingContext* MouseMappingContext = nullptr;
 
+	UPROPERTY(EditAnywhere)
+	UInputAction* OpenInventory;
+
 	// ================================
 	// =        FUNCTIONS            =
 	// ================================
+
+	void GetUIManagerSubsystem();
 	
 	void InitializePlayerInventory() const;
 
-	void InitializeMainHud() const;
+	void InitializeHUD() const;
 
-	void ConfigureInputSystem() const;
+	void AddMappingContext() const;
+
+	void OnInventoryInputPressed();
 	
 };

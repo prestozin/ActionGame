@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "Data/Inv_InventoryTypes.h"
-#include "Inv_IInventoryListener.generated.h"
+#include "Inv_IInventoryObserver.generated.h"
 
 UINTERFACE()
 
-class UInv_IInventoryListener : public UInterface
+class UInv_IInventoryObserver : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,7 +17,7 @@ class UInv_IInventoryListener : public UInterface
 /**
  * 
  */
-class INVENTORY_API IInv_IInventoryListener
+class INVENTORY_API IInv_IInventoryObserver
 {
 	GENERATED_BODY()
 
@@ -28,5 +28,5 @@ public:
 	void OnInventoryUpdate(EInventoryUpdateType UpdateType,const TArray<int32>& ModifiedIndexes);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Inventory")
-	void RegisterListener(UObject* ObjectListener);
+	void RegisterObserver(UObject* ObjectListener);
 };

@@ -17,26 +17,69 @@ void UUIManagerSubsystem::Deinitialize()
 	MainHud = nullptr;
 }
 
-void UUIManagerSubsystem::CreateMainHUD()
+void UUIManagerSubsystem::OnPlayerControllerReady() 
 {
-	UWorld* World = GetWorld();
-	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	UMyGameInstance* MyGameInstance = Cast<UMyGameInstance>(World->GetGameInstance());
+	SetDefaults();
+}
+
+void UUIManagerSubsystem::SetDefaults()
+{
+	UWorld* GameWorld = GetWorld();
+	if (!GameWorld) return;
+	World = GameWorld;
 	
-	if (!World || !LocalPlayer || !MyGameInstance || !MyGameInstance->HUDClass) return;
-		
-	MainHud = CreateWidget<UMainHud> (World, MyGameInstance->HUDClass);
+	APlayerController* PlayerController = GetLocalPlayer()->GetPlayerController(World);
+	UMyGameInstance* GameInstance = Cast<UMyGameInstance>(World->GetGameInstance());
+	if (!PlayerController || !GameInstance) return;
 	
-	if (MainHud)
+	OwningPlayer = PlayerController;
+	MyGameInstance = GameInstance;
+}
+
+void UUIManagerSubsystem::CreateHUD()
+{
+	if (MyGameInstance->HUDClass)
 	{
-		MainHud->AddToViewport();
+		MainHud = CreateWidgetOfClass(MyGameInstance->HUDClass);
+		if (MainHud)
+		{
+			MainHud->AddToViewport();
+		}
 	}
 }
 
-void UUIManagerSubsystem::SetupInventory(UObject* InventorySource)
+void UUIManagerSubsystem::CreateInventoryWidget()
 {
-	if (MainHud && InventorySource && MainHud->InventoryHUD)
+	if (MyGameInstance->InventoryClass)
 	{
-		MainHud->InventoryHUD->InitializeInventory(InventorySource);
+		InventoryHUD = CreateWidgetOfClass(MyGameInstance->InventoryClass);
+		if (InventoryHUD)
+		{
+			InventoryHUD->AddToViewport();
+		}
 	}
 }
+
+void UUIManagerSubsystem::SetInventoryWidget(TObjectPtr<UObject> InventorySource)
+{
+	if (!InventoryHUD) return;
+	InventoryHUD->InitializeInventory(InventorySource);
+}
+
+void UUIManagerSubsystem::ToggleInventoryWidget() const
+{
+	if (!InventoryHUD || !OwningPlayer) return;
+
+	if (InventoryHUD->IsVisible())
+	{
+		InventoryHUD->SetVisibility(ESlateVisibility::Collapsed);
+		OwningPlayer->SetShowMouseCursor(false);
+	}
+	else
+	{
+		InventoryHUD->SetVisibility(ESlateVisibility::Visible);
+		OwningPlayer->SetShowMouseCursor(true);
+	}
+}
+
+

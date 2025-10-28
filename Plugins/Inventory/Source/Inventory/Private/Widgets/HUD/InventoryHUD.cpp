@@ -6,6 +6,10 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 
+#include "Interfaces/Inv_IInventoryHandler.h"
+#include "Interfaces/Inv_IInventoryReader.h"
+#include "Interfaces/Inv_IInventoryObserver.h"
+
 #include "Widgets/DragDrop/Inv_OnDragSlot.h"
 #include "Widgets/SplitStack/Inv_SplitStack.h"
 #include "Widgets/Item/Slots/Inv_ItemSlot.h"
@@ -13,9 +17,7 @@
 #include "Widgets/DragDrop/Inv_DragDrop.h"
 #include "Widgets/DropZone/Inv_DropZone.h"
 #include "Widgets/Item/ContextMenu/Inv_ContextMenu.h"
-#include "Interfaces/Inv_IInventoryActions.h"
-#include "Interfaces/Inv_IInventoryInfo.h"
-#include "Interfaces/Inv_IInventoryListener.h"
+
 
 
 
@@ -30,13 +32,13 @@ void UInventoryHUD::NativeConstruct()
 
 void UInventoryHUD::InitializeInventory(UObject* IntInventorySource)
 {
-	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryInfo::StaticClass()))
+	if (IntInventorySource && IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryReader::StaticClass()))
 	{
 		InventorySource = IntInventorySource;
 		
-		if (IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryActions::StaticClass()))
+		if (IntInventorySource->GetClass()->ImplementsInterface(UInv_IInventoryHandler::StaticClass()))
 		{
-			Execute_RegisterListener(IntInventorySource, this);
+			Execute_RegisterObserver(IntInventorySource, this);
 		}
 	}
 }
@@ -168,7 +170,7 @@ void UInventoryHUD::OnItemDropped(UDragDropOperation* InOperation, int32 Destina
 		{
 			if (InventorySource)
 			{
-				Execute_IRemoveItem(InventorySource.GetObject(), DraggedIndex);
+				Execute_IDropItem(InventorySource.GetObject(), DraggedIndex, -1);
 			}
 		}
 	}
@@ -190,7 +192,7 @@ void UInventoryHUD::SetSplitStackWidget(int32 Index)
 	});
 	SplitStackWidget->OnDropConfirmed.BindLambda([this](int32 Index, int32 Quantity)
 	{
-		Execute_IDropItemQuantity(InventorySource->_getUObject(), Index, Quantity);
+		Execute_IDropItem(InventorySource->_getUObject(), Index, Quantity);
 	});
 }
 
@@ -244,7 +246,7 @@ void UInventoryHUD::SetContextMenu()
 	ContextMenuWidget->OnSplitClicked.BindUObject(this, &UInventoryHUD::SetSplitStackWidget);
 	ContextMenuWidget->OnDropClicked.BindLambda([this](int32 Index)
 	{
-		Execute_IRemoveItem(InventorySource->_getUObject(), Index);
+		Execute_IDropItem(InventorySource->_getUObject(), Index, -1);
 	});
 }
 
