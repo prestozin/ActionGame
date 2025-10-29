@@ -27,7 +27,10 @@ public class Comunicator : ModuleRules
 			{
 				"Core",
 				"GameplayTags",
-				
+				"KismetCompiler",
+				"BlueprintGraph",
+				"Kismet",
+				"ToolMenus" 
 			}
 			);
 			

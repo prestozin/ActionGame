@@ -1,16 +1,15 @@
-
-#include "Message/AsyncMessage.h"
+#include "Listener/AsyncListener.h"
 #include "Kismet/GameplayStatics.h"
 
-UAsyncMessage* UAsyncMessage::ListenForMessage(UObject* WorldContextObject, FGameplayTag FromChannel)
+UAsyncListener* UAsyncListener::ListenForMessageAsync(UObject* WorldContextObject, FGameplayTag FromChannel)
 {
-	UAsyncMessage* GetMessage = NewObject<UAsyncMessage>();
+	UAsyncListener* GetMessage = NewObject<UAsyncListener>();
 	GetMessage->WorldContextObject = WorldContextObject;
 	GetMessage->TargetChannel = FromChannel;
 	return GetMessage;
 }
 
-void UAsyncMessage::HandleMessage(FGameplayTag Channel, UBaseMessage* Message)
+void UAsyncListener::HandleMessage(FGameplayTag Channel, UBaseMessage* Message)
 {
 	if (Channel == TargetChannel)
 	{
@@ -19,7 +18,7 @@ void UAsyncMessage::HandleMessage(FGameplayTag Channel, UBaseMessage* Message)
 	}
 }
 
-void UAsyncMessage::Activate()
+void UAsyncListener::Activate()
 {
 	if (!WorldContextObject)
 	{
@@ -29,7 +28,7 @@ void UAsyncMessage::Activate()
 
 	if (UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(WorldContextObject))
 	{
-		CachedListener = GameInstance->GetSubsystem<UMessageListener>();
+		CachedListener = GameInstance->GetSubsystem<UComunicatorSubsystem>();
 	}
 
 	if (!CachedListener || !TargetChannel.IsValid())
@@ -39,6 +38,6 @@ void UAsyncMessage::Activate()
 
 	if (FOnMessageBroadcasted* MessageDelegate = CachedListener->GetChannelDelegate(TargetChannel))
 	{
-		MessageDelegate->AddDynamic(this, &UAsyncMessage::HandleMessage);
+		MessageDelegate->AddDynamic(this, &UAsyncListener::HandleMessage);
 	}
 }
