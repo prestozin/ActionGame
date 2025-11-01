@@ -6,14 +6,18 @@
 #include "UObject/Object.h"
 #include "BaseMessage.generated.h"
 
-
 UCLASS(BlueprintType)
 class COMUNICATOR_API UBaseMessage : public UObject
 {
 	GENERATED_BODY()
 
+private:
+
+	UPROPERTY()
+	TMap<FName, int32> VariablesContainer;
+
+	
 public:
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Message")
-	FText MessageText;
+	
 };

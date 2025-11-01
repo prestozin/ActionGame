@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class Comunicator : ModuleRules
+public class ComunicatorNodes : ModuleRules
 {
-	public Comunicator(ReadOnlyTargetRules Target) : base(Target)
+	public ComunicatorNodes(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -26,7 +26,11 @@ public class Comunicator : ModuleRules
 			new string[]
 			{
 				"Core",
-				"GameplayTags",
+				"BlueprintGraph",
+				"ToolMenus",
+				"UnrealEd",
+				"Comunicator",
+				// ... add other public dependencies that you statically link with here ...
 			}
 			);
 			

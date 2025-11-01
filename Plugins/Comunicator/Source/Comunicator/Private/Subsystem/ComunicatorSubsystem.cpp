@@ -2,27 +2,39 @@
 #include "Message/BaseMessage.h"
 
 
-FOnMessageBroadcasted* UComunicatorSubsystem::GetChannelDelegate(FGameplayTag Channel)
-{
-	if (!Channel.IsValid()) return nullptr;
-	
-	return &ChannelDelegates.FindOrAdd(Channel);
-}
 
-void UComunicatorSubsystem::SendMessage(FGameplayTag Channel, const FText& Text)
+void UComunicatorSubsystem::SendMessage(FGameplayTag Channel, UBaseMessage* Message)
 {
 	if (!Channel.IsValid() ) return;
 	
 	UBaseMessage* LastMessage = NewObject<UBaseMessage>(this);
 	if (!LastMessage) return;
 	
-	LastMessage->MessageText = Text;
 	MessagesByChannel.FindOrAdd(Channel) = LastMessage;
 	
 	if (FOnMessageBroadcasted* Delegate = ChannelDelegates.Find(Channel))
 	{
 		Delegate->Broadcast(Channel, LastMessage);
 	}
+}
+
+DEFINE_FUNCTION(UComunicatorSubsystem::execSendData)
+{
+	P_GET_PROPERTY(FNameProperty, VariableName)
+	
+	Stack.MostRecentProperty = nullptr;
+	Stack.StepCompiledIn<FProperty>(nullptr);
+	void* ValuePtr = Stack.MostRecentPropertyAddress;
+
+	P_FINISH;
+	
+	FProperty* Prop = Stack.MostRecentProperty;
+	if (!Prop || !ValuePtr) return;
+}
+
+UBaseMessage* UComunicatorSubsystem::SendData(FName VariableName,int32 Value)
+{
+	return nullptr;	
 }
 
 void UComunicatorSubsystem::HandleMessageReceivedEvent(FGameplayTag Channel, UBaseMessage* Message)
@@ -52,7 +64,9 @@ UBaseMessage* UComunicatorSubsystem::ListenForMessageEvent(FGameplayTag FromChan
 	return LastMessage;
 }
 
-
-
-
-
+FOnMessageBroadcasted* UComunicatorSubsystem::GetChannelDelegate(FGameplayTag Channel)
+{
+	if (!Channel.IsValid()) return nullptr;
+	
+	return &ChannelDelegates.FindOrAdd(Channel);
+}

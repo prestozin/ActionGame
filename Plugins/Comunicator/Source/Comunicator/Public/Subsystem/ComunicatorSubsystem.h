@@ -35,8 +35,12 @@ public:
 	FOnMessageBroadcasted* GetChannelDelegate(FGameplayTag Channel);
 	
 	UFUNCTION(BlueprintCallable, Category="Message")
-	void SendMessage(FGameplayTag Channel, const FText& Text);
+	void SendMessage(FGameplayTag Channel, UBaseMessage* Message);
 	
 	UFUNCTION(BlueprintCallable, Category = "Message", DisplayName="Listen For Message (Event)")
 	UBaseMessage* ListenForMessageEvent(FGameplayTag FromChannel, FOnMessageReceivedEvent OnMessageReceivedEvent);
+	
+	UFUNCTION(BlueprintPure, CustomThunk, meta = (CustomStructureParam = "Value"))
+	UBaseMessage* SendData(FName VariableName, int32 Value);
+	DECLARE_FUNCTION(execSendData);
 };
