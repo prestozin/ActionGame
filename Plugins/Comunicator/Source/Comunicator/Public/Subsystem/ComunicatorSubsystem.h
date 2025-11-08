@@ -39,8 +39,4 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Message", DisplayName="Listen For Message (Event)")
 	UBaseMessage* ListenForMessageEvent(FGameplayTag FromChannel, FOnMessageReceivedEvent OnMessageReceivedEvent);
-	
-	UFUNCTION(BlueprintPure, CustomThunk, meta = (CustomStructureParam = "Value"))
-	UBaseMessage* SendData(FName VariableName, int32 Value);
-	DECLARE_FUNCTION(execSendData);
 };

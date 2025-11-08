@@ -1,4 +1,4 @@
-#include "Messages/K2_SendData.h"
+#include "MessageData/K2_SendData.h"
 #include "EdGraphSchema_K2.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"
@@ -24,7 +24,7 @@ FText UK2_SendData::GetNodeTitle(ENodeTitleType::Type TitleType) const //set nod
 
 FText UK2_SendData::GetMenuCategory() const   //set node category
 {
-	return FText::FromString(TEXT("Comunicator")); 
+	return FText::FromString(TEXT("Communicator")); 
 }
 
 void UK2_SendData::AllocateDefaultPins()
@@ -40,7 +40,7 @@ void UK2_SendData::AllocateDefaultPins()
 	CreatePin(EGPD_Input, DefaultPinType, TEXT("Value"));
 	CreatePin(EGPD_Output, Schema->PC_Object, UBaseMessage::StaticClass(), TEXT("Output"));
 
-	for (const FDynamicPinData& Data : CachedPins)
+	for (const FDynamicPinData& Data : CachedPins)  //restore all cached pins on start
 	{
 		CreatePin(EGPD_Input, Data.PinType, Data.PinName);
 	}
@@ -52,7 +52,8 @@ void UK2_SendData::GetNodeContextMenuActions(class UToolMenu* Menu, class UGraph
 	
 	if (Context->Node)                                         //add the option add pin to node context menu
 	{
-		Section.AddMenuEntry(
+		Section.AddMenuEntry
+		(
 			"AddPin",
 			FText::FromString("Add Input Pin"),
 			FText::FromString("Add a new input pin"),
@@ -72,7 +73,7 @@ void UK2_SendData::GetNodeContextMenuActions(class UToolMenu* Menu, class UGraph
 		
 		if (PinCount > 1) 
 		{
-			Section.AddMenuEntry								//add the option remove pin to node context menu
+			Section.AddMenuEntry								//if there's more than 1 input pin, add the option remove pin to node context menu
 			(
 		 "RemovePin",
 		  FText::FromString("Remove Pin"),
@@ -97,7 +98,7 @@ void UK2_SendData::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		{
 			if (Pin->PinName == TEXT("Value"))
 			{
-				DefaultPinType = LinkedPin->PinType;
+				DefaultPinType = LinkedPin->PinType;				//cache the type of the default pin
 			}
 			
 			Pin->PinType = LinkedPin->PinType;
@@ -108,7 +109,7 @@ void UK2_SendData::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			{
 				if (Data.PinName == Pin->PinName)
 				{
-					Data.PinType = Pin->PinType;				//cache the type of all conected variables to load after on start
+					Data.PinType = Pin->PinType;				//cache the type of all conected variables to load on start
 					break;
 				}
 			}
@@ -151,10 +152,10 @@ void UK2_SendData::AddInputPin()
 			}
 			else if (PinName.StartsWith(TEXT("Value_")))
 			{
-				FString IndexStr;
-				if (PinName.Split(TEXT("_"), nullptr, &IndexStr, ESearchCase::CaseSensitive))
+				FString IndexString;											//save the value after value_ to string
+				if (PinName.Split(TEXT("_"), nullptr, &IndexString, ESearchCase::CaseSensitive))
 				{
-					int32 CurrentIndex = FCString::Atoi(*IndexStr);
+					int32 CurrentIndex = FCString::Atoi(*IndexString);			//convert the value saved in string to int
 					PinIndex = FMath::Max(PinIndex, CurrentIndex);
 				}
 			}
@@ -166,11 +167,11 @@ void UK2_SendData::AddInputPin()
 		
 	UEdGraphPin* NewPin = CreatePin(EGPD_Input, Schema->PC_Wildcard, FName(*NewPinName));
 	
-	FDynamicPinData Data;
+	FDynamicPinData Data;							//set the data of the new pin
 	Data.PinName = NewPin->PinName;
 	Data.PinType = NewPin->PinType;
 	
-	CachedPins.Add(Data);
+	CachedPins.Add(Data);							//cache the new pin data
 	
 	GetGraph()->NotifyNodeChanged(this);
 	FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
@@ -182,7 +183,7 @@ void UK2_SendData::RemoveInputPin(UEdGraphPin* Pin)
 	
 	CachedPins.RemoveAll([&](const FDynamicPinData& Data)
 	{
-		return Data.PinName == Pin->PinName;
+		return Data.PinName == Pin->PinName;	//if a pin was removed from node, remove from cached pins searching by it's name
 	});
 	
 	int32 PinCount = 0;
@@ -190,7 +191,7 @@ void UK2_SendData::RemoveInputPin(UEdGraphPin* Pin)
 	{
 		if (ExistingPin->Direction == EGPD_Input)
 		{
-			PinCount++;
+			PinCount++;							//count how many pins still exist's to avoid remove all pins, always one will left
 		}
 	}
 

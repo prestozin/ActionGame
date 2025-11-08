@@ -2,22 +2,12 @@
 
 #pragma once
 
+#include "Structs/DynamicPinData.h"
 #include "CoreMinimal.h"
 #include "K2Node.h"
 #include "K2Node_AddPinInterface.h"
 #include "K2_SendData.generated.h"
 
-USTRUCT()
-struct FDynamicPinData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FName PinName;
-
-	UPROPERTY()
-	FEdGraphPinType PinType;
-};
 
 UCLASS()
 class COMUNICATORNODES_API UK2_SendData : public UK2Node, public IK2Node_AddPinInterface
